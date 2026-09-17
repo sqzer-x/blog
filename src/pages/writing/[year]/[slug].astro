@@ -1,0 +1,24 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const posts = await getCollection('writing');
+  return posts
+    .filter((p) => !p.data.draft)
+    // ⚠️ params 는 **디코딩된 원문**이어야 한다. 한글 슬러그가 여기에 그대로 들어간다.
+    .map((p) => ({ params: { year: p.data.date.slice(0, 4), slug: p.id }, props: { post: p } }));
+};
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+<Base title={`${post.data.title} :: sqzer`} description={post.data.deck}>
+  <article>
+    <h1>{post.data.title}</h1>
+    {post.data.deck && <p>{post.data.deck}</p>}
+    <time datetime={post.data.date}>{post.data.date}</time>
+    <Content />
+  </article>
+</Base>

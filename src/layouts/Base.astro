@@ -1,0 +1,34 @@
+---
+interface Props { title: string; description?: string }
+const { title, description } = Astro.props;
+const NAV = [
+  { label: 'About',   href: '/' },
+  { label: 'Papers',  href: '/papers/' },
+  { label: 'Talk',    href: '/talk/' },
+  { label: 'Code',    href: '/code/' },
+  { label: 'Writing', href: '/writing/' },
+];
+const here = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={new URL(here, Astro.site)} />
+    <link rel="alternate" type="application/rss+xml" title="sqzer" href="/index.xml" />
+  </head>
+  <body>
+    <header>
+      <a href="/">sqzer</a>
+      <nav>
+        {NAV.map((n) => (
+          <a href={n.href} aria-current={here === n.href ? 'page' : undefined}>{n.label}</a>
+        ))}
+      </nav>
+    </header>
+    <main><slot /></main>
+  </body>
+</html>

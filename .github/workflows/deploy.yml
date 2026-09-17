@@ -1,0 +1,41 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 두 배포가 겹치지 않게. 진행 중인 배포는 끊지 않는다.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: withastro/action@v6
+        with:
+          node-version: 24
+          # npm run build 로 돌려야 prebuild(콘텐츠 게이트)가 함께 실행된다.
+          # astro build 를 직접 부르면 게이트가 건너뛰어진다.
+          build-cmd: npm run build
+        env:
+          # 백필이 끝나면 all 로 올리고 **다시 내리지 않는다**.
+          CONTENT_STRICT: urls,schema
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

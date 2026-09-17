@@ -1,0 +1,9 @@
+---
+import Base from '../layouts/Base.astro';
+import { getEntry, render } from 'astro:content';
+const entry = await getEntry('about', 'about');
+const { Content } = await render(entry!);
+---
+<Base title="sqzer" description="Notes on systems, networks, and the things around them.">
+  <article><Content /></article>
+</Base>

@@ -1,0 +1,18 @@
+{
+  "name": "blog",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "prebuild": "node scripts/check-content.mjs && node scripts/build-info.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "node scripts/check-content.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.3.3"
+  }
+}

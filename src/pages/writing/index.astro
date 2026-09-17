@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { byHugoOrder, postUrl } from '../../lib/order';
+
+const posts = (await getCollection('writing'))
+  .filter((p) => !p.data.draft)
+  .sort(byHugoOrder);
+
+// 연도로 묶는다 — URL 축과 일치시킨다.
+const years = [...new Set(posts.map((p) => p.data.date.slice(0, 4)))].sort().reverse();
+---
+<Base title="Writing :: sqzer">
+  <h1>Writing</h1>
+  {years.map((y) => (
+    <section>
+      <h2 id={y}>{y}</h2>
+      <ul>
+        {posts.filter((p) => p.data.date.slice(0, 4) === y).map((p) => (
+          <li>
+            <a href={postUrl(p)}>{p.data.title}</a>{p.data.deck ? <>: {p.data.deck}</> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</Base>
