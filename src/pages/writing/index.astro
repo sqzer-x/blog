@@ -7,21 +7,265 @@ const posts = (await getCollection('writing'))
   .filter((p) => !p.data.draft)
   .sort(byHugoOrder);
 
-// 연도로 묶는다 — URL 축과 일치시킨다.
+// Grouped by year, matching the axis already present in the URL.
 const years = [...new Set(posts.map((p) => p.data.date.slice(0, 4)))].sort().reverse();
+
+/** Rail date. The year is stated by the section kicker, so only MM.DD is repeated. */
+const md = (iso: string) => `${iso.slice(5, 7)}.${iso.slice(8, 10)}`;
+
+/** lang="ko" only on titles that contain Hangul — used for speech and font fallback. */
+const HANGUL = /[ᄀ-ᇿ㄰-㆏가-힣]/;
+
+const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
 ---
-<Base title="Writing :: sqzer">
-  <h1>Writing</h1>
-  {years.map((y) => (
-    <section>
-      <h2 id={y}>{y}</h2>
-      <ul>
-        {posts.filter((p) => p.data.date.slice(0, 4) === y).map((p) => (
-          <li>
-            <a href={postUrl(p)}>{p.data.title}</a>{p.data.deck ? <>: {p.data.deck}</> : null}
-          </li>
-        ))}
-      </ul>
-    </section>
-  ))}
+<Base title="Writing :: sqzer" description="Essays and technical notes, 2024–2026.">
+  <div class="index">
+    <header class="index__head">
+      <h1 class="index__title">Writing</h1>
+      {posts.length > 0 && (
+        <p class="index__count">{posts.length} posts · {span}</p>
+      )}
+    </header>
+
+    {posts.length === 0 && <p class="index__empty">Nothing here yet.</p>}
+
+    {years.map((y) => (
+      <section class="year">
+        <h2 class="year__label" id={y}>{y}</h2>
+        <ol class="year__list">
+          {posts.filter((p) => p.data.date.slice(0, 4) === y).map((p) => (
+            <li class="entry" data-type={p.data.type}>
+              <time class="entry__date" datetime={p.data.date}>{md(p.data.date)}</time>
+              <h3 class="entry__title" lang={HANGUL.test(p.data.title) ? 'ko' : undefined}>
+                <a href={postUrl(p)}>{p.data.title}</a>
+              </h3>
+              {p.data.deck && (
+                <p class="entry__deck" lang={HANGUL.test(p.data.deck) ? 'ko' : undefined}>{p.data.deck}</p>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+  </div>
 </Base>
+
+<style>
+  /* ────────────────────────────────────────────────────────────────
+     Page-local tokens.
+     Defers to the global token set once Base provides it; until then these stand alone
+     using the clamp literals measured from the Gazette.
+     ──────────────────────────────────────────────────────────────── */
+  .index {
+    /* Grid */
+    --content-w: 45.5rem;  /* 728px, the Gazette content measure */
+    --rail-w: 4.5rem;      /* 72px date rail */
+    --rail-gap: 1.5rem;    /* 24px  */
+
+    /* Type scale, as measured */
+    --fs-small:  var(--wp-small,  clamp(0.6875rem, 0.688rem + ((1vw - 0.2rem) * 0.256), 0.875rem));  /* 11→14 */
+    --fs-medium: var(--wp-medium, clamp(0.75rem,   0.75rem  + ((1vw - 0.2rem) * 0.342), 1rem));      /* 12→16 */
+    --fs-large:  var(--wp-large,  clamp(1rem,      1rem     + ((1vw - 0.2rem) * 0.342), 1.25rem));   /* 16→20 */
+    --fs-h5:     var(--wp-h5,     clamp(1.25rem,   1.25rem  + ((1vw - 0.2rem) * 0.342), 1.5rem));    /* 20→24 */
+    --fs-h1:     var(--wp-h1,     clamp(2.125rem,  2.125rem + ((1vw - 0.2rem) * 2.568), 4rem));      /* 34→64 */
+    --fs-kicker: var(--wp-kicker, clamp(0.63rem,   0.36vw + 0.54rem, 0.88rem));                      /* 10.08→14.08 */
+
+    --lh-tight: 1.1;
+    --lh-medium: 1.4;
+    --lh-base: 1.5;
+
+    --gap-kicker: clamp(1rem, 0.72vw + 0.83rem, 1.5rem);                            /* 16→24 */
+    --entry-pad:  clamp(0.75rem, 0.75rem + ((1vw - 0.2rem) * 0.342), 1rem);         /* 12→16 */
+    --gap-section: clamp(2rem, 1.8rem + 1vw, 3rem);                                 /* spacing-48 */
+
+    /* Colour: desk = crimson */
+    --ppc-text: var(--desk-text, #771120);   /* dark   — kickers */
+    --ppc-ui:   var(--desk-ui,   #a51c30);   /* base   — 4px rules, focus ring */
+    --ppc-wash: var(--desk-wash, #f7ebeb);   /* wash   — row hover */
+    --ink:      var(--color-black,      #000);
+    --meta:     var(--color-slate,      #605a4e);
+    --hairline: var(--color-grey,       #b9b8ad);
+    --paper:    var(--color-sand-light, #fffbf4);
+
+    --font-body:    var(--font-sans,  "Inter", "Pretendard", system-ui, sans-serif);
+    --font-display: var(--font-serif, "Newsreader", "Pretendard", Georgia, serif);
+    /* Swapping this one line to var(--font-body) flips all 30 titles to sans. */
+    --index-title-font: var(--font-display);
+
+    container: index / inline-size;
+    max-width: min(100%, calc(var(--rail-w) + var(--rail-gap) + var(--content-w))); /* 824px */
+    margin-inline: auto;
+    font-family: var(--font-body);
+    color: var(--ink);
+  }
+
+  /* Masthead */
+  .index__head {
+    padding-left: calc(var(--rail-w) + var(--rail-gap));
+    margin-bottom: var(--gap-section);
+  }
+
+  .index__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--fs-h1);
+    font-weight: 500;
+    line-height: var(--lh-tight);
+    letter-spacing: -0.01em;
+    /* Newsreader overlaps Sanomat at opsz 56-72; pinned even at a 320px viewport. */
+    font-variation-settings: 'opsz' 56;
+    color: var(--ink);
+  }
+
+  .index__count {
+    margin: 0.75rem 0 0;
+    font-size: var(--fs-small);
+    line-height: var(--lh-base);
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--meta);
+  }
+
+  .index__empty {
+    padding-left: calc(var(--rail-w) + var(--rail-gap));
+    font-size: var(--fs-large);
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  /* Year as section kicker, ported from .featured-articles__category */
+  .year__label {
+    position: sticky;
+    top: var(--index-sticky-top, 0px);
+    z-index: 2;
+    margin: 0;
+    padding: var(--gap-kicker) 0 var(--gap-kicker) calc(var(--rail-w) + var(--rail-gap));
+    background: var(--paper);
+    scroll-margin-top: var(--index-sticky-top, 0px);
+
+    font-family: var(--font-body);
+    font-size: var(--fs-kicker);
+    font-weight: 700;
+    line-height: var(--lh-medium);
+    letter-spacing: 0.105rem;   /* 1.68px */
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--ppc-text);
+  }
+
+  /* Signature motif, used once per year heading — three times on this page. */
+  .year__label::before {
+    content: "";
+    display: block;
+    width: 3rem;
+    border-top: 4px solid var(--ppc-ui);
+    margin-bottom: var(--gap-kicker);
+  }
+
+  .year__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Entry */
+  .entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    column-gap: var(--rail-gap);
+    align-items: baseline;
+    padding-block: var(--entry-pad);
+    border-bottom: 1px solid var(--hairline);
+    transition: background-color 0.12s linear;
+  }
+
+  .entry:last-child { border-bottom: none; }
+  .entry:hover { background-color: var(--ppc-wash); }
+
+  .entry__date {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;          /* right-aligned: the vertical spine of the page */
+    font-size: var(--fs-small);
+    line-height: var(--lh-base);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: 0.02em;
+    color: var(--meta);
+    white-space: nowrap;
+  }
+
+  .entry__title {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    font-family: var(--index-title-font);
+    font-size: var(--fs-h5);
+    font-weight: 500;
+    line-height: var(--lh-medium);
+    font-optical-sizing: auto;
+    color: var(--ink);
+    word-break: keep-all;       /* stops Korean titles breaking mid-word */
+    text-wrap: balance;
+  }
+
+  .entry__title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* The whole row is the hit area, ported from .featured-article__title a:before */
+  .entry__title a::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .entry:hover .entry__title a {
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+    text-decoration-thickness: from-font;
+  }
+
+  .entry__title a:focus-visible { outline: 0; }
+  .entry__title a:focus-visible::before {
+    outline: 2px solid var(--ppc-ui);
+    outline-offset: 3px;
+  }
+
+  /* Deck. None exist yet; when backfilled it lands on row 2 with no layout change. */
+  .entry__deck {
+    grid-column: 2;
+    margin: 0.375rem 0 0;
+    font-family: var(--font-body);
+    font-size: var(--fs-medium);
+    line-height: var(--lh-base);
+    color: var(--ink);
+    word-break: keep-all;
+    text-wrap: pretty;
+  }
+
+  /* Folds when the rail no longer fits */
+  @container index (max-width: 36rem) {
+    .index__head,
+    .index__empty,
+    .year__label { padding-left: 0; }
+
+    .entry { grid-template-columns: minmax(0, 1fr); }
+
+    .entry__date {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      margin-bottom: 0.25rem;
+    }
+
+    .entry__title { grid-column: 1; grid-row: 2; }
+    .entry__deck  { grid-column: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .entry { transition: none; }
+  }
+</style>

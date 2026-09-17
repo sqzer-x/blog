@@ -1,49 +1,53 @@
 # blog.sqzer.com
 
-개인 연구 노트. Astro 로 짓고 GitHub Actions 가 GitHub Pages 에 배포한다.
+Personal research notes. Built with Astro, deployed to GitHub Pages by GitHub Actions.
 
-## 글 쓰기
+## Writing
 
 ```bash
-cp content/_template.md content/writing/my-post.md   # 또는 직접 생성
+cp content/_template.md content/writing/my-post.md
 npm run dev
 ```
 
-`content/writing/<slug>.md` 하나가 글 하나다. 파일명이 곧 URL 슬러그이고,
-발행 주소는 front matter 의 `date` 에서 연도를 따 **`/writing/<year>/<slug>/`** 가 된다.
+One file in `content/writing/<slug>.md` is one post. The filename becomes the URL slug,
+and the published address takes its year from the front matter `date`:
+**`/writing/<year>/<slug>/`**.
 
 ```yaml
 ---
-title: ""        # 필수
-titleKo: ""      # 한글 원제 보존용, 선택
-deck: ""         # 인덱스에 제목과 함께 나오는 한 문장. 비어 있어도 빌드는 통과한다
-date: 2026-09-17 # 필수. YYYY-MM-DD
-type: essay      # essay | research — 하위 메뉴가 이 값으로 갈린다
+title: ""        # required
+titleKo: ""      # optional — keeps the original Korean title when a post is translated
+deck: ""         # one sentence shown beside the title in the index. May be empty for now
+date: 2026-09-17 # required, YYYY-MM-DD
+type: essay      # essay | research — sub-navigation splits on this
 tags: []
-draft: true      # true 면 빌드에서 제외된다
+draft: true      # excluded from the build while true
 ---
 ```
 
-초안은 **로컬에 두고 완성됐을 때 push** 한다. 이 저장소는 공개다.
+Drafts stay local until they are finished. **This repository is public.**
 
-이미지는 `public/uploads/` 에 두고 본문에서 `/uploads/...` 로 참조한다.
+Images live in `public/uploads/` and are referenced from prose as `/uploads/...`.
 
-## 배포
+## Deploying
 
-`main` 에 push 하면 Actions 가 빌드해 Pages 로 올린다. 빌드 앞에 콘텐츠 게이트가 걸려 있어
-(`npm run prebuild`) 스키마 위반·URL 충돌·없는 이미지 참조가 있으면 **배포되지 않는다.**
+Pushing to `main` builds the site and publishes it to Pages. A content gate runs before the
+build (`npm run prebuild`), so a schema violation, a URL collision or a missing image
+reference **stops the deploy** instead of shipping a broken page.
 
 ```bash
-npm run check    # 게이트만 따로 돌리기
-npm run build    # 게이트 + 빌드
+npm run check    # gate only
+npm run build    # gate, then build
 ```
 
-게이트 엄격도는 워크플로의 `CONTENT_STRICT` 로 조절한다. 지금은 `urls,schema` 이고,
-덱·태그 백필이 끝나면 `all` 로 올린 뒤 다시 내리지 않는다.
+Strictness is controlled by `CONTENT_STRICT` in the workflow. It is `urls,schema` today;
+once decks and tags are backfilled it moves to `all` and does not move back.
 
-## 설계 메모
+## Design notes
 
-- 정식 URL 은 전부 트레일링 슬래시로 끝난다
-- URL 슬러그는 **ASCII 만** 소문자화한다(한글 파일명은 그대로 살린다)
-- 목록 정렬은 `date DESC → Intl.Collator('en') title → path` — DB·파일시스템 순서에 맡기지 않는다
-- 연도를 URL 에 넣는 이유는 `essay`·`research` 같은 하위 뷰 이름과 슬러그가 충돌하지 않게 하기 위해서다
+- Every canonical URL ends in a trailing slash.
+- Slugs lowercase **ASCII only** — Korean filenames survive unchanged.
+- Lists sort by `date DESC → Intl.Collator('en') title → path`, never by filesystem order.
+- The year sits in the URL so that post slugs can never collide with sub-view names
+  such as `essay` or `research`.
+- Type, colour and spacing follow one token set in `src/styles/tokens.css`.

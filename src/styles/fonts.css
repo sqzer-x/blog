@@ -1,0 +1,59 @@
+/* Self-hosted subsets. All three are variable fonts with their axes intact.
+   The character set was taken from the current corpus, so a Korean syllable that has
+   never appeared before will fall back to a system face until the subset is regenerated. */
+
+@font-face {
+  font-family: 'Newsreader';
+  src: url('/fonts/newsreader-var.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+  /* Corrects Newsreader (cap .708) against Sanomat (cap .750). */
+  size-adjust: 106%;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-var.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  /* x-height is within 0.22% of Neue Haas Grotesk Text — no adjustment needed. */
+}
+
+/* For body <em> and photo credits. The display italic is never used in headlines,
+   so it is not shipped. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-italic-var.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Korean fallback, gated by unicode-range: an English-only page downloads none of it. */
+@font-face {
+  font-family: 'PretendardBody';
+  src: url('/fonts/pretendard-var.woff2') format('woff2-variations');
+  font-weight: 45 930;
+  font-style: normal;
+  font-display: swap;
+  size-adjust: 102.9%;
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+}
+@font-face {
+  font-family: 'PretendardDisplay';
+  src: url('/fonts/pretendard-var.woff2') format('woff2-variations');
+  font-weight: 45 930;
+  font-style: normal;
+  font-display: swap;
+  /* Headings are scaled to match the display face, which carries size-adjust: 106%. */
+  size-adjust: 105.4%;
+  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
+}
+
+:root {
+  --font-display: 'Newsreader', 'PretendardDisplay', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', 'PretendardBody', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}

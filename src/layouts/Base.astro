@@ -1,6 +1,10 @@
 ---
-interface Props { title: string; description?: string }
-const { title, description } = Astro.props;
+import '../styles/fonts.css';
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+interface Props { title: string; description?: string; section?: string }
+const { title, description, section = 'slate' } = Astro.props;
 const NAV = [
   { label: 'About',   href: '/' },
   { label: 'Papers',  href: '/papers/' },
@@ -9,6 +13,9 @@ const NAV = [
   { label: 'Writing', href: '/writing/' },
 ];
 const here = Astro.url.pathname;
+// An exact match would leave every nav item unmarked on /writing/2026/vtzero/.
+// Only '/' compares exactly, so that About is not current on every page.
+const isCurrent = (href: string) => (href === '/' ? here === '/' : here.startsWith(href));
 ---
 <!doctype html>
 <html lang="en">
@@ -19,16 +26,19 @@ const here = Astro.url.pathname;
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={new URL(here, Astro.site)} />
     <link rel="alternate" type="application/rss+xml" title="sqzer" href="/index.xml" />
+    <link rel="preload" href="/fonts/newsreader-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
   </head>
-  <body>
+  <body class={`is-${section}`}>
+    <a class="skip" href="#main">Skip to content</a>
     <header>
       <a href="/">sqzer</a>
       <nav>
         {NAV.map((n) => (
-          <a href={n.href} aria-current={here === n.href ? 'page' : undefined}>{n.label}</a>
+          <a href={n.href} aria-current={isCurrent(n.href) ? 'page' : undefined}>{n.label}</a>
         ))}
       </nav>
     </header>
-    <main><slot /></main>
+    <main id="main"><slot /></main>
   </body>
 </html>

@@ -1,0 +1,74 @@
+/* Baseline typography. Layout specifics live with each template. */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-large);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--black);          /* headlines stay pure black */
+  text-wrap: balance;
+  margin: 0;
+}
+h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); letter-spacing: -0.015em; }
+h2 { font-size: var(--fs-h2); line-height: var(--lh-snug); }
+h3 { font-size: var(--fs-h3); line-height: var(--lh-snug); }
+h4 { font-size: var(--fs-h4); line-height: var(--lh-close); }
+h5 { font-size: var(--fs-h5); line-height: var(--lh-medium); }
+h6 { font-size: var(--fs-h6); line-height: var(--lh-medium); }
+
+p { margin: 0; }
+p + p { margin-block-start: var(--sp-24); }
+
+/* Prose links carry no colour: weight and underline only. */
+a { color: inherit; font-weight: 700; text-decoration: underline;
+    text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+
+:focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: 2px; }
+
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: var(--root-pad); top: var(--root-pad); z-index: 10;
+  background: var(--page-bg); padding: var(--sp-30) var(--sp-40);
+  border: 2px solid var(--ppc-ui); }
+
+/* Shell */
+body > header, main { max-width: var(--w-content); margin-inline: auto;
+  padding-inline: var(--root-pad); }
+body > header { padding-block: var(--sp-48) var(--sp-40);
+  border-bottom: 1px solid var(--page-hairline);
+  display: flex; flex-wrap: wrap; gap: var(--sp-40);
+  align-items: baseline; justify-content: space-between; }
+main { padding-block: var(--sp-64) var(--sp-120); }
+
+/* Wordmark and navigation.
+   small-caps is deliberately avoided: none of Newsreader, Inter or Pretendard ships an
+   `smcp` feature, so `font-variant: small-caps` would be synthesised by the browser.
+   Synthesis scales capitals down, which thins their stems — on a serif with a 3.95 stroke
+   contrast the hairlines disappear around 14px.
+   The kicker idiom is used instead: uppercase, absolute letter-spacing, 700, body face.
+   .105rem is 1.68px, which reads as 0.153em at 11px and tightens to 0.12em at 14px. */
+body > header > a { font-family: var(--font-body); font-size: var(--fs-medium);
+  text-transform: uppercase; letter-spacing: 0.105rem; font-weight: 700;
+  text-decoration: none; color: var(--page-fg); }
+nav { display: flex; gap: var(--sp-40); flex-wrap: wrap; }
+nav a { font-family: var(--font-body); font-size: var(--fs-small);
+  text-transform: uppercase; letter-spacing: 0.105rem; font-weight: 700;
+  text-decoration: none; color: var(--page-meta);
+  /* The current item is marked by a 4px rule in the section colour. It is laid down
+     transparent on every item so that marking one causes no layout shift. */
+  border-block-end: 4px solid transparent; padding-block-end: 2px; }
+nav a:hover { color: var(--ppc-text); }
+nav a[aria-current='page'] { color: var(--ppc-text); border-block-end-color: var(--ppc-ui); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

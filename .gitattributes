@@ -1,6 +1,6 @@
-# 이 저장소는 리눅스 CI 에서 빌드되고 Windows 에서 편집된다.
-# .gitattributes 가 없으면 core.autocrlf=true 인 워킹트리가 CI 와 다른 바이트를 보게 되고,
-# 콘텐츠 해시·SRI 를 쓰는 자산 파이프라인에서 재현성이 깨진다.
+# Edited on Windows, built on Linux CI. Without this file a core.autocrlf=true working
+# tree hands CI different bytes than the author sees, which breaks any pipeline that
+# hashes file contents.
 * text=auto eol=lf
 
 *.png  -text

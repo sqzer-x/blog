@@ -3,3 +3,4 @@ dist/
 .astro/
 public/build-info.json
 .DS_Store
+.fonts-work/

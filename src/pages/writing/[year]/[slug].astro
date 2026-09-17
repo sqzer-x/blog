@@ -7,7 +7,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const posts = await getCollection('writing');
   return posts
     .filter((p) => !p.data.draft)
-    // ⚠️ params 는 **디코딩된 원문**이어야 한다. 한글 슬러그가 여기에 그대로 들어간다.
+    // params must be the decoded form — Korean slugs are passed through verbatim.
     .map((p) => ({ params: { year: p.data.date.slice(0, 4), slug: p.id }, props: { post: p } }));
 };
 

@@ -1,19 +1,19 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-/** Hugo 규칙: URL 세그먼트는 **ASCII 만** 소문자화한다. 한글·키릴은 건드리지 않는다. */
+/** Lowercase ASCII only, leaving Korean and Cyrillic untouched. */
 export const asciiLower = (s: string): string =>
   s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
 
 /**
- * YAML 이 `2025-12-07` 을 Date 로 파싱한다. **로컬 시간으로 읽으면 안 된다** —
- * UTC 기준으로 뽑아야 코퍼스 날짜가 하루 밀리지 않는다.
+ * YAML parses `2025-12-07` into a Date. It must be read back in UTC: reading it in local
+ * time shifts roughly half the corpus by a day, which would also move every post URL.
  */
 const dateString = z.union([z.string(), z.date()]).transform((v) =>
   typeof v === 'string' ? v.slice(0, 10) : v.toISOString().slice(0, 10),
 );
 
-/** `deck:` 을 비우면 YAML 이 null 을 준다. undefined 로 흡수하지 않으면 빌드가 죽는다. */
+/** An empty `deck:` parses as null, which fails validation unless absorbed to undefined. */
 const optText = z.preprocess(
   (v) => (v === null || v === '' ? undefined : v),
   z.string().optional(),
@@ -26,12 +26,12 @@ const writing = defineCollection({
   loader: glob({ base: './content/writing', pattern: '*.md', generateId: slugOf }),
   schema: z.object({
     title: z.string(),
-    /** 한글 원제 보존용. 영문 제목으로 갈아탈 때 원본을 잃지 않는다. */
+    /** Keeps the original Korean title when a post switches to an English one. */
     titleKo: optText,
     date: dateString,
-    /** 인덱스에서 덱이 곧 카드다. 백필 전까지는 비어 있어도 된다. */
+    /** In an index without images the deck carries the entry. May be empty until backfilled. */
     deck: optText,
-    /** 하위 뷰(Essay/Research)는 경로가 아니라 이 값으로 가른다. */
+    /** Sub-views split on this value rather than on a URL segment. */
     type: z.enum(['essay', 'research']).optional(),
     tags: z.array(z.string()).default([]),
     draft: z.boolean().optional(),

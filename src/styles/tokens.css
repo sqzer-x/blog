@@ -1,0 +1,81 @@
+/* Design tokens. Type, spacing and grid values are measured from The Harvard Gazette;
+   the colour ladder is re-derived around a crimson anchor. Single light theme — neither
+   reference site ships a dark mode. */
+
+:root {
+  color-scheme: light;
+
+  /* Colour: five families x four steps. base sits at OKLCH L=.4701 with chroma at .901 of
+     the gamut maximum, both taken from the crimson anchor #a51c30.
+       dark   -> --ppc-text  (kickers)
+       base   -> --ppc-ui    (rules, quote bars, focus rings)
+       bright -> on black only
+       wash   -> emphasis backgrounds
+     All 24 pairs were contrast-checked: dark >= 4.5, base >= 3.0, bright >= 4.5 on black,
+     wash <= 1.25. */
+  --crimson-dark:   #771120;  --crimson:   #a51c30;  --crimson-bright: #faa2a2;  --crimson-wash: #f7ebeb;
+  --blue-dark:      #0e455f;  --blue:      #186285;  --blue-bright:    #70cafa;  --blue-wash:    #e6f0f7;
+  --ochre-dark:     #553a0c;  --ochre:     #775315;  --ochre-bright:   #f6ae30;  --ochre-wash:   #f7ede0;
+  --purple-dark:    #5e127b;  --purple:    #831daa;  --purple-bright:  #dda3fa;  --purple-wash:  #f3ebf7;
+  --slate-dark:     #453f34;  --slate:     #605a4e;  --slate-bright:   #c4bdb0;  --slate-wash:   #f5eee0;
+
+  /* Neutrals */
+  --black: #000000;
+  --grey: #b9b8ad;            /* hairlines only */
+  --sand: #faedda;            /* surface: pre, figure, blockquote */
+  --sand-light: #fffbf4;      /* page background */
+  --sand-dark: #eed6aa;       /* borders */
+
+  /* Page roles. A section overrides the --ppc-* trio. */
+  --page-bg: var(--sand-light);
+  --page-fg: var(--black);
+  --page-meta: var(--slate);
+  --page-hairline: var(--grey);
+  --ppc-text: var(--crimson-dark);
+  --ppc-ui: var(--crimson);
+  --ppc-wash: var(--crimson-wash);
+
+  /* Type scale. Every step is fluid and reaches its maximum at 1488px, the wide measure. */
+  --fs-small:    clamp(0.6875rem, 0.2568vw + 0.6361rem, 0.8750rem);  /* 11→14 */
+  --fs-medium:   clamp(0.7500rem, 0.3425vw + 0.6815rem, 1.0000rem);  /* 12→16 */
+  --fs-body:     clamp(1.0000rem, 0.3425vw + 0.9315rem, 1.2500rem);  /* 16→20 */
+  --fs-xlarge:   clamp(1.2500rem, 1.0274vw + 1.0445rem, 2.0000rem);  /* 20→32 */
+  --fs-2xlarge:  clamp(2.5000rem, 1.3699vw + 2.2260rem, 3.5000rem);  /* 40→56 */
+  --fs-h6:       1.125rem;                                          /* 18, fixed */
+  --fs-h5:       clamp(1.2500rem, 0.3425vw + 1.1815rem, 1.5000rem);  /* 20→24 */
+  --fs-h4:       clamp(1.5000rem, 0.6849vw + 1.3630rem, 2.0000rem);  /* 24→32 */
+  --fs-h3:       clamp(1.6250rem, 1.1986vw + 1.3853rem, 2.5000rem);  /* 26→40 */
+  --fs-h2:       clamp(1.7500rem, 1.7123vw + 1.4075rem, 3.0000rem);  /* 28→48 */
+  --fs-h1:       clamp(2.1250rem, 2.5685vw + 1.6113rem, 4.0000rem);  /* 34→64 */
+  --fs-h1-large: clamp(2.5000rem, 4.1096vw + 1.6781rem, 5.5000rem);  /* 40→88 */
+
+  /* Line heights */
+  --lh-tight: 1.1;   /* h1 */
+  --lh-snug: 1.2;    /* h2, h3 */
+  --lh-close: 1.25;  /* h4 */
+  --lh-medium: 1.4;  /* h5, h6 */
+  --lh-base: 1.5;
+  --lh-large: 1.6;   /* body */
+
+  /* Spacing */
+  --sp-20: 0.44rem;  --sp-30: 0.67rem;  --sp-40: 1rem;     --sp-50: 1.5rem;
+  --sp-60: 2.25rem;  --sp-70: 3.38rem;
+  --sp-24: 1.5rem;                                          /* between paragraphs */
+  --sp-32: clamp(1.5rem, 0.5vw + 1.4rem, 2rem);
+  --sp-48: clamp(2rem, 1vw + 1.8rem, 3rem);                 /* block rhythm */
+  --sp-64: clamp(2.5rem, 2.2vw + 2rem, 4rem);
+  --sp-80: clamp(2.5rem, 2.5vw + 2rem, 5rem);
+  --sp-120: clamp(4rem, 3.5vw + 3.3rem, 7.5rem);
+
+  /* Grid */
+  --w-content: 728px;
+  --w-wide: 1488px;
+  --root-pad: clamp(1rem, 1rem + ((1vw - 0.48rem) * 1.923), 2rem);  /* 16→32 */
+}
+
+/* Per-section palette, swapped by a class on <body>. */
+.is-writing { --ppc-text: var(--crimson-dark); --ppc-ui: var(--crimson); --ppc-wash: var(--crimson-wash); }
+.is-code    { --ppc-text: var(--blue-dark);    --ppc-ui: var(--blue);    --ppc-wash: var(--blue-wash); }
+.is-talk    { --ppc-text: var(--ochre-dark);   --ppc-ui: var(--ochre);   --ppc-wash: var(--ochre-wash); }
+.is-papers  { --ppc-text: var(--purple-dark);  --ppc-ui: var(--purple);  --ppc-wash: var(--purple-wash); }
+.is-slate   { --ppc-text: var(--slate-dark);   --ppc-ui: var(--slate);   --ppc-wash: var(--slate-wash); }
