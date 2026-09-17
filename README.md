@@ -42,12 +42,3 @@ npm run build    # gate, then build
 
 Strictness is controlled by `CONTENT_STRICT` in the workflow. It is `urls,schema` today;
 once decks and tags are backfilled it moves to `all` and does not move back.
-
-## Design notes
-
-- Every canonical URL ends in a trailing slash.
-- Slugs lowercase **ASCII only** — Korean filenames survive unchanged.
-- Lists sort by `date DESC → Intl.Collator('en') title → path`, never by filesystem order.
-- The year sits in the URL so that post slugs can never collide with sub-view names
-  such as `essay` or `research`.
-- Type, colour and spacing follow one token set in `src/styles/tokens.css`.
