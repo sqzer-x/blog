@@ -2,6 +2,11 @@
 import Base from '../../layouts/Base.astro';
 ---
 <Base title="Papers :: sqzer">
-  <h1>Papers</h1>
+  {/* The reference carries no page title on its section pages: the bar's left slot
+        already prints the page name, so an <h1> repeating it is the same word twice.
+        Kept in the document as .sr-only rather than deleted — the page still needs one
+        top-level heading for assistive tech and for the document outline, and the bar's
+        slot is a <span> precisely because it is not one. */}
+  <h1 class="sr-only">Papers</h1>
   <p>Nothing here yet.</p>
 </Base>

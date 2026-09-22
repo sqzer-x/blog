@@ -1,9 +1,76 @@
 ---
 import Base from '../layouts/Base.astro';
 import { getEntry, render } from 'astro:content';
+import { hasHangul } from '../lib/hangul';
+
 const entry = await getEntry('about', 'about');
 const { Content } = await render(entry!);
+
+/* Ask the body, not the metadata. This used to matter because about.md was an English
+   document with one Korean line in it — 14 Hangul syllables that no title or description
+   would have revealed, against a 118KB Korean face. The rewritten about.md is English
+   throughout, so the answer is false today and the page fetches no Korean font. The test
+   stays because the answer is the body's to give: one Korean sentence added here starts
+   needing that face again, and nothing else in this file would notice. */
+const ko = hasHangul(entry!.body);
 ---
-<Base title="sqzer" description="Notes on systems, networks, and the things around them.">
-  <article><Content /></article>
+<Base
+  title="sqzer"
+  description="Hyukjin An — software and security engineer, and a founder, in South Korea."
+  ko={ko}
+>
+  {/* about.md is running prose with no headings, the shape the reference's own home page
+      uses, so nothing in the body is a top-level heading any more. The bar's left slot
+      prints the name but it is a <span>, not a heading — so the page needs one here or it
+      has no h1 at all, which was already true when the body opened with `# whoami`
+      (satteriProse demotes it to h2). Visually hidden for the same reason as the other
+      section pages: the reference prints no page title either. */}
+  <h1 class="sr-only">About</h1>
+  <article class="about"><Content /></article>
 </Base>
+
+<!-- is:global for the same reason the article page uses it: the elements <Content />
+     emits carry no scope id, so a scoped selector would miss every one of them. -->
+<style is:global>
+  /* about.md used to print three bare URLs, the longest 40 characters with no space
+     in it. Left unbroken it set the page's minimum width and `/` scrolled sideways on
+     every phone - 383px of content in a 320px viewport. The article page already
+     carries this pair on .prose; the home page had no equivalent rule because it is
+     the one page that renders <Content /> without that wrapper. */
+  .about { word-break: keep-all; }
+
+  /* The portrait, set the way the reference sets its own: floated to the inline end with
+     the prose running beside it, not a banner above the text. It is the first figure in
+     the document and the only one on this page, so the selector is :first-child rather
+     than a class the author would have to remember to type in markdown.
+
+     Two things it buys beyond looking composed. It pulls the reading measure in from the
+     full 1024px this page gets — 4.3 words a line narrower over the paragraphs it passes,
+     which is the direction this page's line length wanted to move anyway. And the 4:5
+     portrait keeps its own aspect from the width/height satteriProse stamps on the <img>,
+     so nothing reflows when it loads.
+
+     Below 40rem the float comes off: a 232px picture beside a 300px column leaves neither
+     enough room, and the reference drops its own block to full width at a similar point. */
+  .about > .fig:first-child {
+    float: inline-end;
+    inline-size: min(14.5rem, 34%);
+    margin: 0 0 var(--sp-40) var(--sp-48);
+    shape-margin: var(--sp-40);
+  }
+  .about > .fig:first-child img { inline-size: 100%; block-size: auto; }
+
+  /* Clears the float so the footer's rule and anything after the prose cannot ride up
+     beside the picture on a short viewport. */
+  .about::after { content: ""; display: block; clear: both; }
+
+  @media (max-width: 40rem) {
+    .about > .fig:first-child {
+      float: none;
+      inline-size: min(12rem, 45%);
+      margin: 0 0 var(--sp-40);
+    }
+  }
+  .about :is(p, li, h1, h2, h3, h4) { overflow-wrap: break-word; }
+  .about a { overflow-wrap: anywhere; }
+</style>

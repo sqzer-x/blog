@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { getCollection } from 'astro:content';
 import { byHugoOrder, postUrl } from '../../lib/order';
+import { hasHangul, langOf } from '../../lib/hangul';
 
 const posts = (await getCollection('writing'))
   .filter((p) => !p.data.draft)
@@ -13,19 +14,26 @@ const years = [...new Set(posts.map((p) => p.data.date.slice(0, 4)))].sort().rev
 /** Rail date. The year is stated by the section kicker, so only MM.DD is repeated. */
 const md = (iso: string) => `${iso.slice(5, 7)}.${iso.slice(8, 10)}`;
 
-/** lang="ko" only on titles that contain Hangul — used for speech and font fallback. */
-const HANGUL = /[ᄀ-ᇿ㄰-㆏가-힣]/;
-
 const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
+
+/* This page is an English document - heading, year kickers, "30 posts" - that sets 21
+   Korean titles, six of them above the fold. Deciding the font preload from the document
+   language would skip the Korean face on the site's densest page and leave those titles
+   in fallback until a third-wave request lands. Ask the strings that will be painted. */
+const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
 ---
-<Base title="Writing :: sqzer" description="Essays and technical notes, 2024–2026.">
+<Base
+  title="Writing :: sqzer"
+  description="Essays and technical notes, 2024–2026."
+  ko={ko}
+>
   <div class="index">
-    <header class="index__head">
-      <h1 class="index__title">Writing</h1>
-      {posts.length > 0 && (
-        <p class="index__count">{posts.length} posts · {span}</p>
-      )}
-    </header>
+      {/* The reference carries no page title on its section pages: the bar's left slot
+          already prints the page name, so an <h1> repeating it is the same word twice.
+          Kept in the document as .sr-only rather than deleted — the page still needs one
+          top-level heading for assistive tech and for the document outline, and the bar's
+          slot is a <span> precisely because it is not one. */}
+      <h1 class="index__title sr-only">Writing</h1>
 
     {posts.length === 0 && <p class="index__empty">Nothing here yet.</p>}
 
@@ -36,11 +44,11 @@ const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
           {posts.filter((p) => p.data.date.slice(0, 4) === y).map((p) => (
             <li class="entry" data-type={p.data.type}>
               <time class="entry__date" datetime={p.data.date}>{md(p.data.date)}</time>
-              <h3 class="entry__title" lang={HANGUL.test(p.data.title) ? 'ko' : undefined}>
+              <h3 class="entry__title" lang={langOf(p.data.title, 'en')}>
                 <a href={postUrl(p)}>{p.data.title}</a>
               </h3>
               {p.data.deck && (
-                <p class="entry__deck" lang={HANGUL.test(p.data.deck) ? 'ko' : undefined}>{p.data.deck}</p>
+                <p class="entry__deck" lang={hasHangul(p.data.deck) ? 'ko' : undefined}>{p.data.deck}</p>
               )}
             </li>
           ))}
@@ -58,7 +66,34 @@ const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
      ──────────────────────────────────────────────────────────────── */
   .index {
     /* Grid */
-    --content-w: 45.5rem;  /* 728px, the Gazette content measure */
+    /* Must equal --w-content in src/styles/tokens.css: this is what puts an entry title
+       on the same left edge as the <h1> of the article it links to. Moving one without
+       the other silently splits that edge - see the note beside --w-content.
+
+       Bound through var() rather than re-stated, and the unit is why. The article caps
+       at an absolute --w-content (928px); a rem literal here only matches it at a 16px
+       root. Chrome's font-size setting is one click from 12px, and .index has
+       margin-inline: auto, so the moment its cap falls below the shell the box centres
+       and the two left edges part. Measured with a 58rem literal at a 12px root: the
+       article <h1> landed 116px left of the entry title at 1488 and 1920, and 103.5px
+       left at 1024; at 14px, 58px and 38.6px. Through var() it is 0.00px at 12 / 14 /
+       16 / 20 / 24px roots, because both pages then cap on the same absolute length.
+       The 58rem fallback is the stand-alone value, used only if Base ships no tokens -
+       the same var(global, measured-literal) shape as the type scale below.
+
+       One exception to the shared edge, and it is not this page's doing nor fixable from
+       here: the nine articles that carry a contents rail push their own page box right
+       between 1440 and 1584px, where a centred gutter cannot seat the rail's 240px floor.
+       This page has no rail and nothing to make room for, so it deliberately does not
+       follow - shifting it in sympathy would buy an empty 280px left gutter at 1440 for a
+       page with nothing to put in it. Measured delta, article title minus entry title, at
+       a 16px root: 72px at 1440, 48 at 1488, 24 at 1536, and 0.00px from 1584 up, at 1439
+       and below, and at every width for the 21 articles with no rail. Those are
+       layout-viewport widths, the same basis the Geometry note uses; a classic 15px
+       scrollbar puts the band at 1440-1598 in window widths and the worst case at 79.5px,
+       measured at a 1440px window. See the ══ Geometry ══ note in
+       src/pages/writing/[year]/[slug].astro for why it was traded. */
+    --content-w: var(--w-content, 58rem);   /* 928px, = --w-content */
     --rail-w: 4.5rem;      /* 72px date rail */
     --rail-gap: 1.5rem;    /* 24px  */
 
@@ -93,17 +128,26 @@ const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
     --index-title-font: var(--font-display);
 
     container: index / inline-size;
-    max-width: min(100%, calc(var(--rail-w) + var(--rail-gap) + var(--content-w))); /* 824px */
+    max-width: min(100%, calc(var(--rail-w) + var(--rail-gap) + var(--content-w))); /* 1024px */
     margin-inline: auto;
     font-family: var(--font-body);
     color: var(--ink);
   }
 
-  /* Masthead */
-  .index__head {
-    padding-left: calc(var(--rail-w) + var(--rail-gap));
-    margin-bottom: var(--gap-section);
-  }
+  /* Masthead.
+     Flush with the page box, NOT indented onto the entry column. It used to carry the
+     same `padding-left: --rail-w + --rail-gap` the year kickers and the entries carry,
+     which put "Writing" 96px in from the left edge — so this was the one section index
+     whose title did not start where /papers/, /talk/ and /code/ start theirs. Reading
+     the four in a row, /writing/ was visibly the odd one, and the h1 is the last thing
+     that should be telling you which page you are on by moving.
+
+     The 96px indent still belongs to everything below it: the year kicker and the entry
+     titles hang off the 72px date rail, and that column is the page's spine. The
+     masthead is not in that column — it is the page's own name, addressed to the shell,
+     not a row in the list — so it takes the shell's edge. Measured after the change at a
+     1700px window: 330.5px for the h1 on all four section indexes, against 426.5 here
+     before it. */
 
   .index__title {
     margin: 0;
@@ -112,19 +156,9 @@ const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
     font-weight: 500;
     line-height: var(--lh-tight);
     letter-spacing: -0.01em;
-    /* Newsreader overlaps Sanomat at opsz 56-72; pinned even at a 320px viewport. */
-    font-variation-settings: 'opsz' 56;
     color: var(--ink);
   }
 
-  .index__count {
-    margin: 0.75rem 0 0;
-    font-size: var(--fs-small);
-    line-height: var(--lh-base);
-    letter-spacing: 0.02em;
-    font-variant-numeric: tabular-nums;
-    color: var(--meta);
-  }
 
   .index__empty {
     padding-left: calc(var(--rail-w) + var(--rail-gap));
@@ -204,7 +238,6 @@ const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
     font-size: var(--fs-h5);
     font-weight: 500;
     line-height: var(--lh-medium);
-    font-optical-sizing: auto;
     color: var(--ink);
     word-break: keep-all;       /* stops Korean titles breaking mid-word */
     text-wrap: balance;
@@ -246,9 +279,9 @@ const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
     text-wrap: pretty;
   }
 
-  /* Folds when the rail no longer fits */
+  /* Folds when the rail no longer fits.
+     The page title is .sr-only and its wrapper is gone, so there is nothing here to un-indent. */
   @container index (max-width: 36rem) {
-    .index__head,
     .index__empty,
     .year__label { padding-left: 0; }
 

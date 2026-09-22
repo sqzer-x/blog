@@ -1,7 +1,30 @@
 /* Baseline typography. Layout specifics live with each template. */
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+/* `scrollbar-gutter: stable` is load-bearing, not a polish detail: it is half of what
+   makes the header sit in the same place on every route.
+
+   The header pads itself with max(--root-pad, (100% - --w-page) / 2), and that `100%` is
+   the body's content width, which a classic scrollbar narrows by 15px. /papers/, /talk/,
+   /code/ and /404 are short enough not to scroll; / , /writing/ and all 30 articles do.
+   So the bar was centring against two different widths and landed 7.5px apart between a
+   scrolling page and a non-scrolling one — measured 338 against 330.5 of padding at a
+   1700px window, at every width, which is visible the moment you click from /papers/ to
+   /writing/. Reserving the gutter everywhere makes the two cases one case: every page now
+   lays out in the same 1685px, scrollbar painted or not.
+
+   What it costs. The four short pages give up 15px of usable width and their content
+   steps 7.5px left — which is the point, since that is the step that puts them on the
+   same edge as everything else. It reserves nothing where the scrollbar is an overlay
+   (every touch browser, and macOS unless "always show" is set), so no mobile width pays
+   for it. And it cannot create horizontal overflow: it narrows the ICB, and every box on
+   this site is sized from that width rather than from 100vw — verified 0px of
+   documentElement.scrollWidth overhang on all seven routes at 320 through 2560.
+
+   On `html` rather than `body` because the viewport takes its scrollbar-gutter from the
+   root element's box; declared on body it would apply to body's own scroll container,
+   which is not the one painting the bar. */
+html { -webkit-text-size-adjust: 100%; scrollbar-gutter: stable; }
 
 body {
   margin: 0;
@@ -10,7 +33,9 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: var(--lh-large);
-  font-optical-sizing: auto;
+  /* font-optical-sizing was here for Newsreader's opsz axis. Lora has no opsz axis and
+     neither does Pretendard, so the declaration is now provably inert - and `auto` is
+     the initial value in any case. Removed rather than left implying an axis exists. */
   -webkit-font-smoothing: antialiased;
 }
 
@@ -29,11 +54,26 @@ h5 { font-size: var(--fs-h5); line-height: var(--lh-medium); }
 h6 { font-size: var(--fs-h6); line-height: var(--lh-medium); }
 
 p { margin: 0; }
-p + p { margin-block-start: var(--sp-24); }
+/* See --sp-para in tokens.css: 0.7em, the reference's own paragraph gap, replacing the
+   flat 24px this held. Written as a top margin on the second of a pair rather than as a
+   bottom margin on every paragraph, so a paragraph that ends a block contributes nothing
+   to the gap below it and the block rhythm stays the one thing that sets it. */
+p + p { margin-block-start: var(--sp-para); }
 
 /* Prose links carry no colour: weight and underline only. */
 a { color: inherit; font-weight: 700; text-decoration: underline;
     text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+
+/* A style choice, not a correctness guard - worth saying plainly, because the shape of
+   the rule invites the other reading. It has never been about synthesis: the retired
+   display face shipped its whole 200-800 axis and Lora ships 400-700, so `a
+   { font-weight: 700 }` inside a heading always had a real instance to select.
+   What the line does is keep every title in the Writing index, every adjacent-post link
+   and the wordmark at the heading's own 500 instead of stepping to 700 merely for being
+   a link. The rule above targets <a> and the heading rule targets <h1>-<h6>, different
+   elements, so there is no specificity contest - the a simply applies unless this line
+   overrides it. Delete it and linked headings get heavier; that is all that happens. */
+:is(h1, h2, h3, h4, h5, h6) a { font-weight: inherit; }
 
 :focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: 2px; }
 
@@ -42,33 +82,532 @@ a { color: inherit; font-weight: 700; text-decoration: underline;
   background: var(--page-bg); padding: var(--sp-30) var(--sp-40);
   border: 2px solid var(--ppc-ui); }
 
+/* Read by assistive tech, drawn nowhere. Two callers, and only one of them is new:
+   the code plate's copy control announces its result through a .sr-only live region,
+   and the Markdown processor already emits <h3 class="sr-only" id="footnote-label">
+   Footnotes</h3> above the footnote list. With no definition in the sheet that second
+   one has been shipping as a visible 24.5px English headline in the middle of a Korean
+   article. `clip-path` alone would do it in every engine this site targets; the width,
+   height and margin are the belt that keeps the box from being a focus-scroll target.
+   Not `display: none`, which would take it out of the accessibility tree as well. */
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 /* Shell */
-body > header, main { max-width: var(--w-content); margin-inline: auto;
-  padding-inline: var(--root-pad); }
-body > header { padding-block: var(--sp-48) var(--sp-40);
-  border-bottom: 1px solid var(--page-hairline);
-  display: flex; flex-wrap: wrap; gap: var(--sp-40);
-  align-items: baseline; justify-content: space-between; }
+/* box-sizing is border-box, so `max-width: 728px` plus the then 32px maximum of
+   --root-pad left a 664px content box — the measure of the day was never actually reached,
+   and on the index the rail then ate another 96px, leaving a 568px title column. The
+   shell is sized to the page box (rail + gap + measure) with the padding added on top
+   of it, which is why --root-pad (now 16→24px) cannot shrink the measure however it is
+   retuned — and, by the same token, cannot shrink the side gutter either: it lives
+   inside this max-width, so it moves where the hairline below ends, not where the text
+   starts. See the --w-content note in tokens.css for the cancellation. */
+main {
+  max-width: calc(var(--w-page) + 2 * var(--root-pad));
+  margin-inline: auto;
+  padding-inline: var(--root-pad);
+}
+
+/* The header is full-bleed, `main` is not.
+   Both used to share the rule above, which capped the header at the same width and left
+   its bottom rule floating in from each edge — a short line across the middle of the
+   screen rather than a boundary. The box now spans the viewport so the rule and the
+   shadow reach both edges, while the padding reproduces what the shared max-width used
+   to do: above `--w-page` + 2 × `--root-pad` it resolves to (100% − --w-page) / 2 and
+   centres a --w-page content box, below it falls back to --root-pad.
+
+   THE CONTRACT IS THAT THIS BAR NEVER MOVES. Same left edge, same right edge, symmetric
+   padding, on every route and at every width — that is what a reader crossing from
+   /papers/ to an article is entitled to, and it is the only thing this expression owes.
+   Two things used to break it and both are gone:
+
+     - the scrollbar. `100%` is the body's content width, so the bar centred against 1700
+       on a short page and 1685 on a scrolling one. `scrollbar-gutter: stable` at the top
+       of this file reserves the gutter on every page, so there is one width now.
+     - the article template. It restated this padding against its own --page-left, so the
+       whole bar slid ~50px right and went asymmetric (280 left / 181 right at 1500)
+       inside the 1440–1584 band, on article pages only. That override is deleted.
+
+   An earlier version of this note promised something stronger and no longer true: that
+   the wordmark always sits on `main`'s left edge. It cannot, because between 1440 and
+   1584 an article pushes `main` right to seat the contents rail. Only `main` moves now;
+   the bar stays where it is, and the two edges part by 79.5px at a 1440px window, 49.5
+   at 1500, 7.5 at 1584 and 0.00 everywhere else. That was the trade the fixed bar was
+   chosen over the shared edge for. See the "which presentation" block in
+   src/pages/writing/[year]/[slug].astro. */
+/* Height follows the reference: 16px of padding above and below a single ~27px row, for a
+   60px bar. The old 48/16 split made it 88px, which read as a section of the page rather
+   than a rule across the top of it.
+
+   That row is ONE line box shared by two type sizes, and the line-height below is what
+   makes it one. The reference declares `line-height: 170%` on body, which computes to a
+   fixed 27.2px at the declaring element and inherits as a LENGTH, so its 24px title and
+   its 19.2px nav sit in the same 27.2px row and the bar is 16 + 27.2 + 16 + 1 = 60.2px.
+   Our --lh-large is a ratio: it resolves per element, the larger slot then sets the row,
+   and a 1.25x title would have pushed this bar to 70px. calc() against --fs-body
+   reproduces the reference's inheritance instead — 18.88 x 1.4 = 26.4px at 1440, for a
+   59.4px bar.
+
+   align-items is centre rather than baseline, and that is deliberate: both slots now have
+   the same line box, so centre, start and stretch are the same pixel, while baseline
+   would step one of them off the row. The reference does not baseline-align either — its
+   title and nav are floats in a shared line box, and their baselines are measurably 1.5px
+   apart.
+
+   row-gap is smaller than column-gap because the wrapped state is a real state here (the
+   nav drops under the slot below ~24em) and it should not inherit the desktop gap. See
+   the note on the nav gap below.
+
+   The rule itself is the Gazette's, measured off news.harvard.edu/gazette: 1px solid
+   #a51c30 — the same crimson this site already carries as its brand, and the Gazette's
+   masthead ground is rgb(255,251,244), the identical cream to --page-bg here. It is
+   --crimson rather than --ppc-ui on purpose: --ppc-ui is the per-section token, and the
+   Gazette's rule does not change colour by section. An earlier version of this note said
+   --ppc-ui "turns blue on /code/ and ochre on /talk/"; measured on the built output it
+   does not — only the article template passes `section`, so every other route renders
+   is-slate and --ppc-ui there is slate, which is also the resting nav colour. Even if
+   those pages did pass one, a header accent that changes per section is the thing this
+   line is avoiding. The hover rule further down follows the same reasoning. */
+body > header { padding-block: var(--sp-40);
+  padding-inline: max(var(--root-pad), calc((100% - var(--w-page)) / 2));
+  border-bottom: 1px solid var(--crimson);
+  box-shadow: 0 1px 12px rgb(0 0 0 / 0.07);
+  line-height: calc(var(--fs-nav) * var(--lh-medium));
+  display: flex; flex-wrap: wrap;
+  column-gap: var(--sp-40); row-gap: var(--sp-30);
+  align-items: center; justify-content: space-between; }
 main { padding-block: var(--sp-64) var(--sp-120); }
 
-/* Wordmark and navigation.
-   small-caps is deliberately avoided: none of Newsreader, Inter or Pretendard ships an
-   `smcp` feature, so `font-variant: small-caps` would be synthesised by the browser.
-   Synthesis scales capitals down, which thins their stems — on a serif with a 3.95 stroke
-   contrast the hairlines disappear around 14px.
-   The kicker idiom is used instead: uppercase, absolute letter-spacing, 700, body face.
-   .105rem is 1.68px, which reads as 0.153em at 11px and tightens to 0.12em at 14px. */
-body > header > a { font-family: var(--font-body); font-size: var(--fs-medium);
-  text-transform: uppercase; letter-spacing: 0.105rem; font-weight: 700;
-  text-decoration: none; color: var(--page-fg); }
-nav { display: flex; gap: var(--sp-40); flex-wrap: wrap; }
-nav a { font-family: var(--font-body); font-size: var(--fs-small);
-  text-transform: uppercase; letter-spacing: 0.105rem; font-weight: 700;
-  text-decoration: none; color: var(--page-meta);
-  /* The current item is marked by a 4px rule in the section colour. It is laid down
-     transparent on every item so that marking one causes no layout shift. */
-  border-block-end: 4px solid transparent; padding-block-end: 2px; }
-nav a:hover { color: var(--ppc-text); }
-nav a[aria-current='page'] { color: var(--ppc-text); border-block-end-color: var(--ppc-ui); }
+/* Site footer. No rule above it and no pushing to the bottom of the viewport.
+
+   Both were tried and both were wrong. The rule repeated a mark the crimson line under the
+   header already owns, on a copyright notice that does not carry that weight. The bottom
+   pinning needed `body` to be a flex column, and that broke /writing/ outright: `main`
+   carries `margin-inline: auto`, an auto cross-axis margin cancels `align-items: stretch`,
+   so `main` collapsed to fit-content — and `.index` inside it is a `container-type:
+   inline-size` box, which may not size from its contents, so it computed to width 0 and the
+   entry titles wrapped one word per line. On a short page the notice simply follows the
+   content now, which is what the reference does too.
+
+   Padding is --sp-40 rather than --sp-48: one line of --fs-small needs air, not a band. */
+.site-foot {
+  padding-inline: max(var(--root-pad), calc((100% - var(--w-page)) / 2));
+  padding-block: var(--sp-40);
+  font-size: var(--fs-small);
+  line-height: var(--lh-base);
+  letter-spacing: 0.02em;
+  color: var(--page-meta);
+}
+
+/* Page name and navigation.
+   One family, one weight, one small-caps texture — and TWO sizes, which is the half that
+   was wrong here. The note this replaces claimed the reference "sets its title and its nav
+   identically - 19.2px, weight 400, letter-spacing normal". Measured, it does not: the
+   title is 24px with .15em (3.6px) of tracking and the nav is 19.2px with none — a 1.25x
+   step, with the tracking on the title alone. Flattening the two removed the only size
+   contrast in the bar and left the left slot at 42px of ink against the reference's 108;
+   a quarter of that reference width is letter-spacing. 1.25x of --fs-body lands 23.6px at
+   1440 and 20.2px at 375, against the reference's flat 24 at both.
+
+   The tracked size is written as calc(--fs-body * 1.25) rather than picked off the heading
+   ladder: --fs-h4 is close at 1440 but the ladder's steps are not parallel, so it drifts
+   to 1.21x at 375. The relationship is the thing being matched, not a number.
+
+   Lora ships no `smcp`, so the browser synthesises these, and an earlier note refused
+   small-caps for that reason. The stroke argument behind that refusal does not survive
+   measurement: at 400 Lora's 'o' is 2.69 contrast with a .0380em thin stroke, which at
+   19px is a 0.72px hairline, and the reference ships exactly this - synthesised Lora
+   small-caps - at exactly this size. Synthesis alone was never a reason; it is how
+   small-caps reach the screen on most faces. Lora has no opsz axis, so one measurement
+   covers every size here. */
+body > header > .page-name, nav a { font-family: var(--font-body); font-size: var(--fs-nav);
+  font-variant-caps: small-caps; letter-spacing: normal; font-weight: 400;
+  text-transform: none; text-decoration: none; }
+body > header > .page-name { font-size: calc(var(--fs-nav) * 1.25); letter-spacing: 0.15em; }
+nav { display: flex; gap: var(--sp-50); flex-wrap: wrap; }
+/* .8em is the reference's own nav spacing (`div.links a { margin-right: .8em }`), and as
+   an em it tracks the type instead of drifting against it: 15.1px at 1440, 12.9px at 375,
+   where the site gap's flat 24px was 1.27em of this type at 1440 and 1.49em at 375 —
+   loosest exactly where the row is tightest. Scoped to this header rather than edited into
+   the rule above, because `nav` is an element selector and the article page has two more
+   navs: .toc-rail escapes it with display:block, and .adj is a subgrid that reads this gap. */
+/* The reference's own spacing, .8em, but resolved against the size it is .8em OF.
+   Written as `0.8em` here it resolved against <nav>'s inherited font-size, which is body's
+   16px because --fs-nav is set on `nav a` and not on `nav` — so the gap sat at 12.8px while
+   the links beside it rendered 19.07px, and the measured 0.671em read as cramped. The
+   reference puts its .8em on the link itself (`div.links a { margin-right: .8em }`) at
+   19.2px, which is 15.36px; calc against the token reproduces that at every width. */
+body > header nav { column-gap: calc(var(--fs-nav) * 0.8); row-gap: calc(var(--fs-nav) * 0.4); }
+
+/* The bar's height must not depend on which page is open, and between 375 and 430px it did.
+   The page name and the nav are two flex items in one wrapping row, so whether the nav folds
+   to a second line is decided by how wide the name is — and the name changes per route
+   ("Code" against "Hyukjin An" is 6 characters and about 80px). Measured across all seven
+   routes: identical two-row bars at 320 and 360, identical one-row bars from 450 up, and a
+   375-430 band where the short names fit beside the nav and the long ones do not — 55.55px
+   against 88.81px depending on the page.
+
+   Below the width where the LONGEST name still fits, every route stacks. The nav taking a
+   full row is not a fallback here; it is the narrow layout, and applying it to all seven is
+   what makes the bar the same object everywhere. 450px is where the sweep showed the last
+   route stop folding, so the stack ends one pixel under it. */
+@media (max-width: 449px) {
+  body > header nav { flex-basis: 100%; }
+}
+nav a { color: var(--page-meta); }
+
+/* The current page is named in the left slot, so the nav does not mark it a second time.
+   What used to be here — a 4px rule in --ppc-ui plus a colour change, laid down
+   transparent on every item — fails on four counts. It is a duplicate of a signal the
+   slot now carries; the reference marks nothing in its nav for exactly that reason (all
+   five of its links measure identical on the page they point at). It occupied the bottom
+   edge the hover rule needs, so the current item would have grown a 2px rule on top of a
+   4px one. Its 4px + 2px of padding was 6px of header height on every item on every page,
+   which is most of what put this bar over 60px. And --ppc-ui resolves to slate on five of
+   six routes, i.e. it drew the "you are here" mark in precisely the colour of the links
+   that are not current. aria-current stays in the markup: it is the programmatic state,
+   and it is not the same question as whether the state is painted twice. */
+
+/* Hover and focus: a 2px rule that grows out of the centre — the reference's one piece of
+   motion, and the detail that reads first in a side-by-side. transform-origin is left at
+   its 50% default, which is what opens it outward instead of wiping it in from one side.
+   The reference's scaleX(.99) is an anti-aliasing dodge worth 0.29px a side, not a design
+   decision, so this goes to a full 1.
+
+   It costs nothing in layout: absolutely positioned against the padding box, which with
+   the shared line box above puts it 4.3px under the baseline at 1440 — the reference's is
+   4px under, crossing the descenders of "Writing" by about a pixel. It is a rule through
+   the type, not a clearance underline, and both are that on purpose.
+
+   --crimson rather than --ppc-ui, for the reason given above the header rule: this bar's
+   accent is the brand crimson at every route, and --ppc-ui here would be the resting nav
+   grey on five of six of them. The reference's own rule (#c44) is likewise a step off its
+   link red, not the link colour itself.
+
+   Reduced motion needs nothing here. The guard at the foot of this file already selects
+   *, *::before, *::after — the transition degrades to an instant appear, which is the
+   right outcome. Do not add a second query.
+
+   Focus keeps the global 3px outline as well; the rule is additive, not a replacement.
+   On its own it would be 127px² of indicator against the ~383px² WCAG 2.4.13 asks for,
+   and a keyboard user could not tell focus from hover. */
+body > header nav a { position: relative; }
+body > header nav a::before {
+  content: ''; position: absolute; inset-inline: 0; bottom: 0; block-size: 2px;
+  background: var(--crimson); transform: scaleX(0);
+  transition: transform 0.3s ease; }
+body > header nav a:focus-visible::before { transform: scaleX(1); }
+body > header nav a:focus-visible { color: var(--crimson-dark); }
+/* A bare :hover latches after a tap on a touch screen and the item stays marked until the
+   next tap elsewhere, so the pointer states are gated on a pointer that can actually
+   hover. :focus-visible above is not gated — that is the keyboard path.
+   The colour moves toward the accent, which on this ground means DOWN in lightness and up
+   in contrast (6.63:1 -> 10.80:1). The reference brightens instead, 7.71:1 -> 5.67:1,
+   because it starts from a saturated red with headroom to lose; ours starts from a
+   neutral, and lifting it would make the hovered item recede and fail AAA. The gesture
+   being matched is "the item takes the accent", not the direction of the luminance step. */
+@media (hover: hover) {
+  body > header nav a:hover { color: var(--crimson-dark); }
+  body > header nav a:hover::before { transform: scaleX(1); }
+}
+
+/* ── Code blocks ──────────────────────────────────────────────────────────────
+   DOM contract, emitted by the `sqzer:code-block` transformer in astro.config.mjs:
+     figure.code[data-language][data-wrap?]
+       > figcaption.code__lang           (absent when data-language is "plaintext")
+       > pre.astro-code[tabindex=0][role=group][aria-label]
+           > code > span.line > span[style="color:var(--astro-code-token-*)"]
+
+   The `pre` carries an inline style (background-color / color / overflow-x) that no
+   stylesheet can outrank without !important, so it is steered through the
+   --astro-code-* custom properties in tokens.css instead of being overridden.
+
+   Two corrections against the earlier draft:
+   1. The UA sheet gives `figure` `margin-inline: 40px`. Left unreset, all 55 code
+      blocks sit 40px right of the one left edge the whole page is built on.
+   2. No negative bleed. The bleed existed to compensate a shell whose content box
+      was 664px; base.css now sizes the shell to the 1024px page box, so the prose
+      column really is 928px and the block is already the full measure. Bleeding
+      -root-pad on top of that gives a 976px box that lines up with nothing —
+      neither the rail's left edge nor the page box's right edge — and pushes the
+      printed width to 944px. Flush is both correct and simpler. */
+.code {
+  /* Containing block for the copy control, and the control's own box. See the copy
+     block below for why the size is declared up here rather than beside the button. */
+  position: relative;
+  --copy-size: 2rem;
+
+  margin-block: var(--sp-48);
+  margin-inline: 0;                  /* reset the UA figure margin */
+  padding-block: var(--sp-40);
+  background: var(--sand);
+}
+/* No figcaption to hold the control, so the plate reserves its row instead. The selector
+   is the transformer's contract, not a guess: a figcaption is emitted for every language
+   except plaintext, which is what a fence with no language becomes. Measured on the built
+   output: 52 code plates, 7 of them uncaptioned (6 fences carry no language and one is
+   written ```plaintext). The three terms are the same three the captioned path already spends
+   (padding, row, caption margin), so both kinds of block open their first line of code at
+   exactly the same depth. */
+.code[data-language='plaintext'] {
+  padding-block-start: calc(var(--sp-40) + var(--copy-size) + var(--sp-40));
+}
+:is(h2, h3, h4, h5, h6) + .code { margin-block-start: var(--sp-32); }
+
+/* The language label reuses the kicker idiom and the 4px x 3rem rule rather than
+   inventing a second type role for it. */
+.code__lang {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-30);
+  /* The control sits at the right end of this row. align-items is already center, so the
+     label stays optically where it was and the row grows around it. */
+  min-block-size: var(--copy-size);
+  padding-inline: var(--code-pad);
+  margin-block-end: var(--sp-40);
+  font-family: var(--font-body);
+  font-size: var(--fs-small);
+  line-height: var(--lh-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.105rem;
+  font-weight: 700;
+  color: var(--ppc-text);
+}
+.code__lang::before {
+  content: '';
+  flex: none;
+  inline-size: 3rem;
+  block-size: 4px;
+  background: var(--ppc-ui);
+}
+
+.code pre {
+  margin: 0;
+  padding-inline: var(--code-pad);   /* rule's left end = first character's left end */
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: var(--lh-base);       /* 16 x 1.5 = 24 = --sp-24, on the paragraph grid */
+  font-variant-ligatures: none;
+  tab-size: 2;
+
+  /* Horizontal scroll shadow, no JS. The two `local` layers are plate-coloured masks
+     that scroll with the content; the two `scroll` layers are shadows fixed to the box.
+     At either end the mask covers the shadow, so a shadow shows only where there is
+     more to see. Modern engines interpolate gradients with premultiplied alpha, so
+     `transparent` no longer produces a grey midpoint — the colour does not have to be
+     restated as an rgba literal, and --sand stays the single source of truth. */
+  background-image:
+    linear-gradient(to right, var(--sand), transparent),
+    linear-gradient(to left,  var(--sand), transparent),
+    linear-gradient(to right, rgb(0 0 0 / 0.16), rgb(0 0 0 / 0)),
+    linear-gradient(to left,  rgb(0 0 0 / 0.16), rgb(0 0 0 / 0));
+  background-position: left center, right center, left center, right center;
+  background-repeat: no-repeat;
+  background-size: 2.5rem 100%, 2.5rem 100%, 0.75rem 100%, 0.75rem 100%;
+  background-attachment: local, local, scroll, scroll;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--sand-dark) transparent;
+}
+.code pre::-webkit-scrollbar { block-size: 6px; }
+.code pre::-webkit-scrollbar-thumb { background: var(--sand-dark); }
+.code pre::-webkit-scrollbar-track { background: transparent; }
+
+/* The `<code>` inside the plate carries the text, and the UA sheet gives it its own
+   `font-family: monospace` — which beats what it would have inherited from the rule
+   above, so --font-mono never reached a single character of code. That is invisible
+   in English: Chrome resolves the `monospace` generic per the element's language, and
+   every article in this corpus is <article lang="ko">, where the generic is the Korean
+   fixed default (GulimChe on Windows) rather than Consolas. Measured on bind9's first
+   line, "sudo yum update -y" at --fs-code 16px: 144.00px as lang=ko, 158.34px with
+   this rule (= Consolas, and = what the same line already measured under lang=en).
+   Inherit rather than restate --font-mono, so the plate keeps one source of truth. */
+.code pre code { font-family: inherit; }
+
+/* The default outline-offset would draw the ring outside the plate. */
+.code pre:focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: -3px; }
+
+/* ```<lang> wrap — for blocks whose lines cannot be preserved. Longest line measured
+   in the corpus is 1,639 characters (one raw sysmon XML event). */
+.code[data-wrap] pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ── Per-language retuning ────────────────────────────────────────────────────
+   Custom properties inherit, so declaring one on the figure resolves the inline
+   `color: var(--astro-code-token-*)` on every span inside it. That is the reason
+   for choosing the css-variables theme: a transformer cannot do this.
+
+   Measured on the built DOM, not assumed. The earlier draft applied a punctuation
+   override to bash, sh and shellsession as well; against the real output that is
+   wrong on all three counts:
+     bash         punctuation = 1 span in 30 blocks, and it is ' &&' — a conjunction,
+                  which the override would paint the colour reserved for "command
+                  starts here". bash's prompt is already token-function ($ x21 of 59).
+     sh           punctuation = 0 spans.
+     shellsession never appears: the corpus writes ```console, and data-language keeps
+                  the author's word, so that selector matches no element.
+   Only console earns it: punctuation = 17, of which 16 are prompt glyphs ($ x13, # x3). */
+.code[data-language='console'] { --astro-code-token-punctuation: var(--crimson-dark); }
+
+/* bash keyword = 150 spans, of which 136 are `<` and `>` from XML and log output
+   pasted into a ```bash fence, not redirects. 136 purple angle brackets is not a
+   reading of the code. The 14 real pipes are structural too, so slate is right for both. */
+.code[data-language='bash'],
+.code[data-language='sh'] { --astro-code-token-keyword: var(--slate); }
+
+/* Inline code. 52 spans across 2 documents, median 14 characters — sparse and short.
+   No corner radius: this page's vocabulary is a 4px rule and a 1px hairline, not curves. */
+:not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--sand);
+  padding: 0.1em 0.3em;
+}
+
+/* ── Copy control ───────────────────────────────────────────────
+   One icon button per code plate, built by the script in the article template. Nothing
+   is emitted for it server-side, so a reader with no JS is never handed a control that
+   cannot work — and nothing here is conditional on the script having run, so a plate
+   looks the same before, during and after it does.
+
+   That is the whole reason the row is reserved in CSS above rather than made by the
+   script: the button is taken out of flow and dropped into a band that already exists,
+   so no code block reflows when it appears. The band is also why the control cannot end
+   up over code at any width. It is above the scroller, not inside it, on a plate whose
+   width the reader never has to share with it.
+
+   DOM contract, from the script:
+     button.code__copy[data-state=idle|done|fail][aria-label]
+       > svg > g[data-glyph=copy|done|fail]
+
+   Colour: there is no green in this palette, so success is not signalled by hue — the
+   glyph changes shape, and the accent is the same accent every other active control on
+   the page takes. Failure is told honestly instead of being coloured: the script selects
+   the block's text, which is a far louder signal than a red button, and says so through
+   the live region.
+
+   No focus rule. The global :focus-visible ring at the top of this file is what the rest
+   of the site's controls wear, and outline-offset: 2px lands it inside the plate.
+   No reduced-motion rule either: the blanket query at the foot of this file already
+   drops these transitions with !important. */
+.code__copy {
+  position: absolute;
+  inset-block-start: var(--sp-40);
+  /* Right edge in by the same --code-pad the first character is in by on the left. */
+  inset-inline-end: var(--code-pad);
+  display: grid;
+  place-items: center;
+  inline-size: var(--copy-size);
+  block-size: var(--copy-size);     /* 32px square, over the 24px WCAG 2.2 target floor */
+  padding: 0;
+  border: 1px solid var(--sand-dark);
+  background: none;
+  color: var(--page-meta);
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms, background-color 120ms;
+}
+.code__copy > svg { display: block; }
+
+/* All three glyphs ship in one <svg> and data-state picks the one that paints. The button
+   never rewrites its own markup, so it cannot change size between states and there is no
+   second request for an icon. */
+.code__copy [data-glyph] { display: none; }
+.code__copy[data-state='idle'] [data-glyph='copy'],
+.code__copy[data-state='done'] [data-glyph='done'],
+.code__copy[data-state='fail'] [data-glyph='fail'] { display: inline; }
+
+/* Gated, like the nav's hover: on a touch device :hover sticks after the tap, which would
+   leave the control reading as active on the last block touched. */
+@media (hover: hover) {
+  .code__copy:hover { color: var(--ppc-text); border-color: var(--ppc-ui); background: var(--page-bg); }
+}
+.code__copy[data-state='done'] { color: var(--ppc-text); border-color: var(--ppc-ui); }
+.code__copy[data-state='fail'] { color: var(--ppc-text); border-color: var(--ppc-ui); background: var(--ppc-wash); }
+
+@media print {
+  .code { background: none; break-inside: avoid; }
+  /* Paper has no clipboard. The control goes, and so does the row that was reserved for
+     it -- on plaintext blocks that is 48px of empty plate at the head of every fence. */
+  .code__copy { display: none; }
+  .code[data-language='plaintext'] { padding-block-start: var(--sp-40); }
+  .code__lang { min-block-size: 0; }
+  /* overflow-x is inline on the pre, so this is the one place !important is required;
+     without it everything past the scroll edge is cut off the page. */
+  .code pre {
+    overflow-x: visible !important;
+    white-space: pre-wrap;
+    background-image: none;
+  }
+}
+
+/* ── Diagrams ─────────────────────────────────────────────────────────────────
+   DOM contract, emitted by src/lib/satteri-diagram.mjs:
+     figure.diagram[data-diagram][tabindex=0][role=region][aria-label]
+       > svg[width][height][viewBox]     (baked by scripts/render-diagrams.mjs)
+
+   The SVG carries its own <style>, scoped to its own #mmd-<hash> id and holding the palette
+   this file's tokens resolved to at bake time, so nothing here paints the picture. What is
+   left is the frame, and the one thing the picture cannot do for itself: fit.
+
+   A diagram is baked at intrinsic size and scaled down here to whatever width the column
+   has, which is the opposite of what this block did before. The old rule kept every drawing
+   at 100% and scrolled the frame, on the argument that scaling the widest one would render
+   its labels at 9.0px. The argument was sound and the trade was still wrong: a picture you
+   have to drag sideways inside a page you are scrolling down is not a picture you read, and
+   it hid a diagram's whole point - its shape - behind a 928px slot. The reader said so.
+
+   So the fix is two-sided, and only half of it is here. The other half is in
+   src/lib/diagrams.mjs: the two sequence diagrams are now baked with `sequence.wrap`, which
+   breaks long message labels instead of letting one label set the distance between two
+   lifelines. That is what makes fitting affordable - 1,103x660 becomes 660x780 and needs no
+   scaling at all, 1,540x874 becomes 1,194x958 and scales 0.75, so 16px labels land at 12px
+   rather than 9.3px. The flowchart is the one that does not come down: its width is four
+   boxes in a row, not one long line, so it still fits at 0.59 and its 15px labels land at
+   8.8px. It is a four-box pipeline whose shape survives that; its fine print does not, and
+   the honest answer there is the reader's own pinch-zoom, which on vector art costs nothing.
+
+   `max-inline-size: 100%` with `block-size: auto` is the replaced-element idiom: the root's
+   width/height attributes give the intrinsic ratio, so the height follows the width and the
+   picture never grows past what mermaid measured. Nothing scrolls, so the scroll shadows,
+   the thin scrollbar and the print override that used to undo `overflow-x` are all gone with
+   it: the five rules this block compiles to measure 373 B raw in the built sheet, 173 B
+   brotli, where the scrolling version measured 1,036 B.
+
+   Global rather than in the article template, because the article template is not the only
+   page that renders Markdown: src/pages/index.astro puts about.md through this pipeline too.
+   A reader who never opens a page with a diagram pays for this block and nothing else: no JS,
+   no request, no font. */
+.diagram {
+  margin-block: var(--sp-48);
+  margin-inline: 0;                  /* reset the UA figure margin */
+  padding: var(--code-pad);
+  border: 1px solid var(--sand-dark);
+}
+:is(h2, h3, h4, h5, h6) + .diagram { margin-block-start: var(--sp-32); }
+/* Inside the border, like .code pre, so the ring is not drawn over the prose beside it.
+   The figure keeps its tabindex: it is no longer a scroll region, but it is still the one
+   thing on the page a keyboard reader may want to land on before zooming into it. */
+.diagram:focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: -3px; }
+
+/* `display: block` also drops the inline baseline gap under the frame; `margin-inline: auto`
+   centres a drawing narrower than the column, which is now the common case rather than the
+   impossible one. */
+.diagram > svg {
+  display: block;
+  margin-inline: auto;
+  inline-size: auto;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+@media print { .diagram { break-inside: avoid; } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

@@ -2,9 +2,35 @@
 import '../styles/fonts.css';
 import '../styles/tokens.css';
 import '../styles/base.css';
+import { hasHangul } from '../lib/hangul';
 
-interface Props { title: string; description?: string; section?: string }
-const { title, description, section = 'slate' } = Astro.props;
+interface Props {
+  title: string;
+  description?: string;
+  section?: string;
+  /**
+   * Does this page put Hangul on screen? It decides which font is preloaded, and it is
+   * NOT the same question as the document language. /writing/ is an English document —
+   * heading "Writing", year kickers, "30 posts" — that renders 21 Korean titles above
+   * the fold, and `/` is an English document whose one tagline is Korean. 31 of the 35
+   * built pages need the Korean face; only /papers/, /talk/, /code/ and /404.html do not.
+   * Pass it explicitly wherever the Korean text is not already in title or description.
+   */
+  ko?: boolean;
+}
+const { title, description, section = 'slate', ko } = Astro.props;
+
+/**
+ * Preload the face that blocks first paint on THIS route, not a fixed pair.
+ *
+ * Measured: the Korean face is 118,240B against 21,816 + 21,308 for the Latin pair, and
+ * it is discovered last — HTML, then CSS, then layout, then the request. On a Korean
+ * article the display face sets exactly one string above the fold, the wordmark, so
+ * preloading it ahead of the Korean body text inverts the priority.
+ *
+ * woff2 is already Brotli-compressed, so none of these numbers move on the wire.
+ */
+const needsKo = ko ?? hasHangul(title, description);
 const NAV = [
   { label: 'About',   href: '/' },
   { label: 'Papers',  href: '/papers/' },
@@ -16,6 +42,36 @@ const here = Astro.url.pathname;
 // An exact match would leave every nav item unmarked on /writing/2026/vtzero/.
 // Only '/' compares exactly, so that About is not current on every page.
 const isCurrent = (href: string) => (href === '/' ? here === '/' : here.startsWith(href));
+
+/**
+ * The header's left slot is the name of the page you are on, not a wordmark. That is the
+ * whole state mechanic of the reference header, and the reason its nav carries no
+ * current-item marker at all: /papers reads "Papers", /code reads "Code", and an article
+ * reads its SECTION — measured on the live reference, /writing/2025/… shows "Writing",
+ * never the article's own title, which already has an h1 below.
+ *
+ * It is derived from NAV and isCurrent rather than from a new prop, so it needs nothing
+ * of the pages: startsWith already carries /writing/2026/vtzero/ to "Writing". Root is
+ * excluded from the match because its nav label is "About", which names a page, not the
+ * site; / and anything unrouted (404) fall through to the site name instead — the
+ * reference does the same, labelling its own root nav item "Main" while the slot reads
+ * the site owner's name.
+ *
+ * Note this is NOT the `section` prop above: that one is the palette key (is-slate,
+ * is-writing) and only article pages pass it.
+ */
+const currentNav = NAV.find((n) => n.href !== '/' && isCurrent(n.href));
+/* The site owner's name, not the domain. The reference's own root slot reads "Nicholas
+ * Carlini" where its nav item reads "Main"; this reads the same way against "About". */
+const SITE_OWNER = 'Hyukjin An';
+const pageName = currentNav?.label ?? SITE_OWNER;
+
+/* Copyright range. The opening year is fixed; the closing year is the build's, in UTC like
+   every other date on this site. Stamping it at build time rather than typing 2026 means the
+   notice cannot quietly go stale — and if a year passes with no push, it correctly keeps
+   showing the year of the last publication rather than a year nothing was published in. */
+const SITE_YEAR_FROM = 2009;
+const buildYear = new Date().getUTCFullYear();
 ---
 <!doctype html>
 <html lang="en">
@@ -26,13 +82,22 @@ const isCurrent = (href: string) => (href === '/' ? here === '/' : here.startsWi
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={new URL(here, Astro.site)} />
     <link rel="alternate" type="application/rss+xml" title="sqzer" href="/index.xml" />
-    <link rel="preload" href="/fonts/newsreader-var.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+    {/* One Latin face now, so this is unconditional: every page paints Lora, and the
+        old branch between a display face and the Korean one has nothing left to pick. */}
+    <link rel="preload" href="/fonts/latin-9bba8f25.woff2" as="font" type="font/woff2" crossorigin />
+    {needsKo && <link rel="preload" href="/fonts/ko-02f8cebd.woff2" as="font" type="font/woff2" crossorigin />}
   </head>
   <body class={`is-${section}`}>
     <a class="skip" href="#main">Skip to content</a>
     <header>
-      <a href="/">sqzer</a>
+      {/* A span, not a link and not a heading. Once the slot reads "Papers" an href="/"
+          on it is a link whose visible name is not its destination, and the same control
+          would take five different names across the site; the reference's own slot is a
+          plain div for that reason. / is already in the nav as "About". Not a heading
+          either: /papers/, /talk/, /code/ and /writing/ each already carry an h1 holding
+          exactly this word, and a second one inside the banner landmark would duplicate
+          it. */}
+      <span class="page-name">{pageName}</span>
       <nav>
         {NAV.map((n) => (
           <a href={n.href} aria-current={isCurrent(n.href) ? 'page' : undefined}>{n.label}</a>
@@ -40,5 +105,8 @@ const isCurrent = (href: string) => (href === '/' ? here === '/' : here.startsWi
       </nav>
     </header>
     <main id="main"><slot /></main>
+    <footer class="site-foot">
+      <p>Copyright &copy; {SITE_YEAR_FROM}&ndash;{buildYear} {SITE_OWNER}</p>
+    </footer>
   </body>
 </html>

@@ -28,17 +28,13 @@ function outsideFences(md: string): string {
   return out.join('\n');
 }
 
-/**
- * Reading time: 500 Korean characters per minute plus 230 Latin words per minute.
- * A Korean syllable carries less than a Latin word, so Korean is counted by character.
- * Across the corpus this yields 1 minute (work-is-finding) to 24 (how-to-win-best-paper-ko).
+/*
+ * `readingMinutes` stood here — 500 Korean characters plus 230 Latin words per minute,
+ * printed as "N min read" in the article header. The header no longer carries a reading
+ * estimate (the reference prints a title, a byline and a date and nothing else), and the
+ * article template was its only caller, so it is deleted rather than left as an export
+ * with no importer. `plain()` above is still read by both functions below.
  */
-export function readingMinutes(md: string): number {
-  const t = plain(md);
-  const kor = (t.match(/[가-힣]/g) ?? []).length;
-  const lat = (t.match(/[A-Za-z0-9][A-Za-z0-9'’-]*/g) ?? []).length;
-  return Math.max(1, Math.ceil(kor / 500 + lat / 230));
-}
 
 export type ProseShape = 'essay' | 'technical';
 export type ProseRhythm = 'flow' | 'staccato';

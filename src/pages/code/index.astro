@@ -1,7 +1,156 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+import { hasHangul, langOf } from '../../lib/hangul';
+
+/*
+ * Authorial order, and nothing else. `order` ascending is the whole sort: the reference's
+ * own code page is hand-ranked, and the author reorders this page by changing one number
+ * in front matter. Name and id break a tie only so the output is stable rather than
+ * filesystem-ordered — the same reason src/lib/order.ts refuses to delegate that. There
+ * is no date on this collection to sort by and no star count to let GitHub sort it.
+ */
+const collator = new Intl.Collator('en');
+const projects = (await getCollection('code'))
+  .filter((p) => !p.data.draft)
+  .sort(
+    (a, b) =>
+      a.data.order - b.data.order ||
+      collator.compare(a.data.name, b.data.name) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
+
+/* The description is each file's markdown body, so every entry has to be rendered before
+   the template can lay it out. Seven `render()` calls, resolved together. */
+const entries = await Promise.all(
+  projects.map(async (p) => ({ entry: p, Content: (await render(p)).Content })),
+);
+
+/* The same question src/pages/index.astro asks of about.md, and for the same reason: the
+   metadata on this route is English whatever the content says, so only the content can
+   answer whether the 118KB Korean face blocks first paint. It is false for all seven
+   projects today — which is what the note in Base.astro claims about /code/ — and it
+   stops being a lie the day one of these descriptions is written in Korean. */
+const ko = projects.some((p) => hasHangul(p.data.name, p.body));
 ---
-<Base title="Code :: sqzer">
-  <h1>Code</h1>
-  <p>Nothing here yet.</p>
+<Base
+  title="Code :: sqzer"
+  description="Tools and small programs I have written and published."
+  ko={ko}
+>
+  <div class="code-index">
+    {/* Flush with the page box, exactly as .index__head is on /writing/: the h1 is the
+        page's own name, so it takes the shell's edge rather than a column's. Left as a
+        bare <h1> with no class and no font rules of its own, which is what puts it on the
+        same left edge and at the same size as the h1 on /papers/ and /talk/. */}
+      {/* The reference carries no page title on its section pages: the bar's left slot
+          already prints the page name, so an <h1> repeating it is the same word twice.
+          Kept in the document as .sr-only rather than deleted — the page still needs one
+          top-level heading for assistive tech and for the document outline, and the bar's
+          slot is a <span> precisely because it is not one. */}
+      <h1 class="sr-only">Code</h1>
+
+    {entries.length === 0 ? (
+      <p class="code-index__empty">Nothing here yet.</p>
+    ) : (
+      <ul class="projects">
+        {entries.map(({ entry, Content }) => (
+          <li class="project">
+            <h2 class="project__name" lang={langOf(entry.data.name, 'en')}>
+              <a href={entry.data.url}>{entry.data.name}</a>
+            </h2>
+            <div class="project__about" lang={hasHangul(entry.body) ? 'ko' : undefined}>
+              <Content />
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
 </Base>
+
+<style>
+  /* Capped at the site's measure, the same 928px an article's prose and the Writing
+     index's entry column get.
+
+     Capped WITHOUT `margin-inline: auto`, and that is the load-bearing half. `main` caps
+     at --w-page (1024px) and centres itself; centring a narrower box inside it again
+     would step this page's <h1> ~48px right of the <h1> on /papers/ and /talk/, which is
+     the edge that was just measured to the pixel (330.5px at a 1700px window, identical
+     on all four section indexes). With margin-inline at its 0 default the box keeps
+     `main`'s left edge and gives the 96px back on the right — the mirror of /writing/,
+     where that same 96px is the date rail on the left. */
+  .code-index {
+    max-width: var(--w-content);
+  }
+
+  /* --sp-48 is the block rhythm token, and the same clamp(2rem, …, 3rem) that /writing/
+     spends between its masthead and its first year. */
+
+  .code-index__empty {
+    font-size: var(--fs-body);
+  }
+
+  .projects {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* The reference separates its entries with a single blank line and nothing else: no
+     rule, no wash, no row-sized hit area. Copied as it stands rather than borrowing the
+     Writing index's row treatment, because that treatment is answering a different
+     question — a row on /writing/ is one whole link to a page of this site, so the row
+     can be the control and the underline can wait for hover. A row here is a name that
+     leaves the site, so the name is the control, it carries the underline base.css gives
+     every link, and there is nothing else on the row to make clickable. Hairlines
+     between seven entries would be furniture the reference does not have and this page
+     does not need. */
+  .project + .project {
+    margin-top: var(--sp-32);
+  }
+
+  /* h2 is the right element — this is a list of seven named things directly under the
+     page's h1, and a screen reader should be able to walk it — but not the right size.
+     --fs-h2 is 28.5px, which reads as seven section headings; --fs-h5 is what the
+     Writing index already sets its entry titles at, and tokens.css says so in as many
+     words: "h5 is really 'index entry title'". Family, weight and colour come from
+     base.css's heading rule, and the link keeps the heading's 500 through
+     `:is(h1…h6) a { font-weight: inherit }`. */
+  .project__name {
+    font-size: var(--fs-h5);
+    line-height: var(--lh-medium);
+    text-wrap: balance;
+  }
+
+  /* Crimson, no underline. base.css underlines every <a> because prose links have to be
+     findable inside running text; here the link IS the entry's headline, so the colour is
+     already the whole affordance and the rule under it only adds noise. --crimson measures
+     7.25:1 against --page-bg, over the 4.5:1 normal text needs, so the colour is not
+     carrying meaning at a contrast that fails — and it lands within 0.23 of the 7.48:1 the
+     reference sets its own outbound links at. The underline comes back on hover and on
+     keyboard focus, where a second signal is cheap and colour alone would be the only cue
+     that the pointer is over a target. */
+  .project__name a { color: var(--crimson); text-decoration: none; }
+  .project__name a:hover,
+  .project__name a:focus-visible { color: var(--crimson-dark); text-decoration: underline; }
+
+  /* margin-top is 0.375rem, matching .entry__deck on /writing/ — a description belongs
+     to the name above it, so the gap has to read as smaller than the --sp-32 between
+     entries.
+
+     The other two are set here and not on a descendant selector because <Content />
+     emits elements with no scope id, so `.project__about p` would miss every one of
+     them. Both properties inherit, which is what lets the wrapper carry them.
+
+     keep-all is a no-op on the English descriptions here and is the house rule
+     everywhere Korean can appear (.prose, .about, .entry__title); `ko` above already
+     anticipates a Korean description, so this does too. break-word is the guard against
+     a long unbroken token — the defect that made `/` scroll sideways on a phone when
+     about.md printed a 40-character URL with no space in it. */
+  .project__about {
+    margin-top: 0.375rem;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+</style>

@@ -7,12 +7,16 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "node scripts/check-content.mjs && node scripts/build-info.mjs",
+    "prebuild": "node scripts/check-content.mjs && node scripts/render-diagrams.mjs && node scripts/build-info.mjs",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "node scripts/check-content.mjs"
+    "check": "node scripts/check-content.mjs",
+    "diagrams": "node scripts/render-diagrams.mjs"
   },
   "dependencies": {
     "astro": "^7.3.3"
+  },
+  "devDependencies": {
+    "mermaid": "12.0.0"
   }
 }
