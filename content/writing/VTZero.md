@@ -1,7 +1,11 @@
 ---
 title: "VTZero"
+titleKo: ""
 date: 2026-06-27
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 # 개요

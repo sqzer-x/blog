@@ -1,7 +1,11 @@
 ---
 title: "Bind 9 DNS Server 설치"
+titleKo: ""
 date: 2024-11-05
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 AWS Lightsail Amazon linux 인스턴스 호스트에 BIND 9 DNS Server 설치 후 설정까지 진행 해봤다.

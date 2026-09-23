@@ -1,7 +1,11 @@
 ---
 title: "Promox 먹통 Troubleshooting"
+titleKo: ""
 date: 2025-12-03
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 몇달 전부터 계속해서 Promox 와 Promox에서 돌아가고 있는 VM들의 서비스에 접근이 안되는 문제가 발생했다.

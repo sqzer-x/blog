@@ -1,7 +1,11 @@
 ---
 title: "We need to talk"
+titleKo: ""
 date: 2026-08-20
+deck: ""
+type:
 tags: []
+draft:
 ---
 ![image](/uploads/research/we_need_to_talk/image-e1aa4196.webp)
 

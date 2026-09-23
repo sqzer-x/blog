@@ -1,7 +1,11 @@
 ---
 title: "DoH(DNS over HTTPS)"
+titleKo: ""
 date: 2024-11-08
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 Securelist의 [SteelFox Trojan 분석 보고서](https://securelist.com/steelfox-trojan-drops-stealer-and-miner/114414/?ref=openpesto.com)에서 C2서버와 피해호스트 통신 과정에서 DoH라는 기술을 이용하여 도메인 조회 과정을 숨기는 페이로드를 구현했다는 내용이 있어서 DoH 기술에 대해 알아보았다.

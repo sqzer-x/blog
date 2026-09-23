@@ -1,7 +1,11 @@
 ---
 title: "ARP"
+titleKo: ""
 date: 2024-11-05
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 **ARP**(주소 결정 프로토콜, Address Resolution Protocol)는 IP 주소를 MAC 주소로 변환해 주는 프로토콜. 네트워크 상에서 두 장치가 통신할 때, 장치들은 서로의 IP 주소를 알고 있지만, 실제 데이터 전송을 위해서는 상대 장치의 MAC 주소(Physical Address) 가 필요하다. ARP는 이를 위해 사용.

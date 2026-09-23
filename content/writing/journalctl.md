@@ -1,7 +1,11 @@
 ---
 title: "journalctl"
+titleKo: ""
 date: 2025-12-07
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 # journalctl

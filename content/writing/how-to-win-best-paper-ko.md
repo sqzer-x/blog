@@ -1,7 +1,11 @@
 ---
 title: "논문 작성 방법론"
+titleKo: ""
 date: 2026-09-08
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 **Nicholas Carlini** | 2026년 3월 9일

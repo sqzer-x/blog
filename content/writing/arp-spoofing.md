@@ -1,7 +1,11 @@
 ---
 title: "ARP Spoofing"
+titleKo: ""
 date: 2024-11-05
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 **ARP**(주소 결정 프로토콜, Address Resolution Protocol)의 취약점을 악용하여 네트워크 통신을 가로채거나, 변조하는 행위. 공격자는 잘못된 ARP 응답을 통해 자신이 신뢰할 수 있는 다른 호스트인 것처럼 속이고, 이를 통해 트래픽을 훔치거나 수정할 수 있다.

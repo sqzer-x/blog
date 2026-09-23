@@ -1,7 +1,11 @@
 ---
 title: "부적절한 것도 정도가 있어!"
+titleKo: ""
 date: 2025-10-17
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 다양성과 소통이 부각되는 시대에

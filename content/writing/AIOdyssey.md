@@ -1,7 +1,11 @@
 ---
 title: "AI Odyssey"
+titleKo: ""
 date: 2026-08-13
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 ![2026-08-13-165932](/uploads/research/aiodyssey/2026-08-13-165932-d1d8a787.webp)

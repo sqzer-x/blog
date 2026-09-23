@@ -1,7 +1,11 @@
 ---
 title: "TSO (TCP Segmentation Offload)"
+titleKo: ""
 date: 2025-12-07
+deck: ""
+type:
 tags: []
+draft:
 ---
 
 # A. Summary
