@@ -94,6 +94,15 @@ const buildYear = new Date().getUTCFullYear();
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={new URL(here, Astro.site)} />
     <link rel="alternate" type="application/rss+xml" title="sqzer" href="/index.xml" />
+    {/* The site had no icon at all: /favicon.ico and /favicon.svg both 404'd, so every tab
+        showed the browser's placeholder. It is the author's own portrait, cropped square
+        on the head rather than scaled from the 4:5 original — a whole portrait shrunk to
+        16px is a smudge, where a head fills the frame and still reads.
+        No SVG icon: this is a photograph, and the .ico carries 16, 32 and 48 for the
+        sizes that actually get asked for. */}
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     {/* One Latin face now, so this is unconditional: every page paints Lora, and the
         old branch between a display face and the Korean one has nothing left to pick. */}
     <link rel="preload" href="/fonts/latin-9bba8f25.woff2" as="font" type="font/woff2" crossorigin />
