@@ -70,6 +70,18 @@ const pageName = currentNav?.label ?? SITE_OWNER;
    every other date on this site. Stamping it at build time rather than typing 2026 means the
    notice cannot quietly go stale — and if a year passes with no push, it correctly keeps
    showing the year of the last publication rather than a year nothing was published in. */
+/* Profiles, not a link list: rel="me" below only means anything for places that are
+   this person. GitHub and Instagram are the pair sqzer.com's own footer carries. The
+   LinkedIn handle is the author's own correction — what stood here came from the previous
+   about.md and was /in/devastator-x, the same handle as a GitHub account that now 404s.
+   No automated check would have caught it: LinkedIn answers robots with a 999 whatever
+   the URL, so a dead profile and a live one look identical from here. */
+const ELSEWHERE = [
+  { label: 'GitHub',    href: 'https://github.com/sqzer-x' },
+  { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/sqzer' },
+  { label: 'Instagram', href: 'https://www.instagram.com/sqzer_x' },
+];
+
 const SITE_YEAR_FROM = 2009;
 const buildYear = new Date().getUTCFullYear();
 ---
@@ -107,6 +119,14 @@ const buildYear = new Date().getUTCFullYear();
     <main id="main"><slot /></main>
     <footer class="site-foot">
       <p>Copyright &copy; {SITE_YEAR_FROM}&ndash;{buildYear} {SITE_OWNER}</p>
+      {/* rel="me" because these are identity claims, not references — it is what lets a
+          profile link back and have the pair mean something. No target="_blank": the site
+          opens nothing in a new tab anywhere else, and the footer is not the place to
+          start. Text rather than the icons sqzer.com uses, because this design has no
+          icon vocabulary in its chrome and one pair of glyphs would be the whole of it. */}
+      <nav class="site-foot__social" aria-label="Elsewhere">
+        {ELSEWHERE.map((n) => <a href={n.href} rel="me">{n.label}</a>)}
+      </nav>
     </footer>
   </body>
 </html>

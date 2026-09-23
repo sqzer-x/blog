@@ -14,6 +14,19 @@
      All 24 pairs were contrast-checked: dark >= 4.5, base >= 3.0, bright >= 4.5 on black,
      wash <= 1.25. */
   --crimson-dark:   #771120;  --crimson:   #a51c30;  --crimson-bright: #faa2a2;  --crimson-wash: #f7ebeb;
+
+  /* Hover step for a link in running text, and the one colour here that is not a rung of
+     the ladder above — it sits between --crimson and --crimson-bright, which is why it is
+     declared apart rather than pretending to be a fifth step.
+
+     Derived from the reference rather than picked: its body links go rgb(160,32,32) at
+     rest to rgb(192,48,48) on hover, measured over CDP on its own article page, which is
+     a luminance increase of x1.572. The same factor applied to --crimson lands here.
+     Contrast: 5.30:1 on --page-bg, so it stays over the 4.5:1 normal text needs while
+     spending the headroom the way the reference spends it. Against the black body text
+     beside it this reads 3.84:1, where --crimson at rest is 2.81:1 — so the hovered link
+     is the one state that clears the 3:1 a colour-only link is asked for. */
+  --crimson-lift:   #cb233b;
   --blue-dark:      #0e455f;  --blue:      #186285;  --blue-bright:    #70cafa;  --blue-wash:    #e6f0f7;
   --ochre-dark:     #553a0c;  --ochre:     #775315;  --ochre-bright:   #f6ae30;  --ochre-wash:   #f7ede0;
   --purple-dark:    #5e127b;  --purple:    #831daa;  --purple-bright:  #dda3fa;  --purple-wash:  #f3ebf7;

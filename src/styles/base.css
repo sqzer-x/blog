@@ -61,19 +61,48 @@ p { margin: 0; }
 p + p { margin-block-start: var(--sp-para); }
 
 /* Prose links carry no colour: weight and underline only. */
-a { color: inherit; font-weight: 700; text-decoration: underline;
-    text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+/* Links are crimson at the weight of the text around them, and carry no rule at rest —
+   the reference's own treatment, measured on its article pages: rgb(160,32,32), weight
+   400 against a 400 paragraph, text-decoration none. What stood here was weight 700 plus
+   an underline, which made a link a different piece of type from the sentence holding it.
 
-/* A style choice, not a correctness guard - worth saying plainly, because the shape of
-   the rule invites the other reading. It has never been about synthesis: the retired
-   display face shipped its whole 200-800 axis and Lora ships 400-700, so `a
-   { font-weight: 700 }` inside a heading always had a real instance to select.
-   What the line does is keep every title in the Writing index, every adjacent-post link
-   and the wordmark at the heading's own 500 instead of stepping to 700 merely for being
-   a link. The rule above targets <a> and the heading rule targets <h1>-<h6>, different
-   elements, so there is no specificity contest - the a simply applies unless this line
-   overrides it. Delete it and linked headings get heavier; that is all that happens. */
-:is(h1, h2, h3, h4, h5, h6) a { font-weight: inherit; }
+   One thing to know about this, stated rather than discovered later. Colour alone is a
+   weaker signal than an underline, and WCAG's technique for colour-only links wants 3:1
+   between the link and the text beside it. --crimson on this site's black body measures
+   2.81:1 — under that line, though the same crimson is 7.25:1 against the page and so
+   never hard to read. The reference is further under it at 2.06:1. What closes the gap
+   There is deliberately no hover or focus rule here to close that gap, because the
+   reference has none either: driven over CDP on its own article page, its body links
+   compute text-decoration none at rest AND on hover, with no background, no border, and
+   zero `a:hover` rules anywhere in its stylesheets. An earlier version of this file added
+   an animated rule on hover on the assumption that it did; that was measured from the
+   rest state alone and was wrong.
+
+   Keyboard users are still served: the global :focus-visible ring near the top of this
+   file rings these links like every other control on the site. The 2.81:1 is the honest
+   cost of the change for a reader who only looks. */
+a { color: var(--crimson); font-weight: inherit; text-decoration: none; }
+
+/* The reference does change on hover, and the earlier note here said it did not. That was
+   wrong twice over: the first probe never hovered at all — the page sets
+   `scroll-behavior: smooth`, so the rect was read before the scroll finished and the
+   pointer landed on nothing, which is also why `document.querySelectorAll(':hover')` came
+   back empty and the reading looked like a null result. Driven properly, the chain ends in
+   the <a> and the colour moves rgb(160,32,32) -> rgb(192,48,48).
+
+   So: colour only, still no rule and no background, and no transition — every other colour
+   change on this site is instant. Gated on a real pointer, because a bare :hover latches
+   after a tap and would leave the last link touched sitting in the hover colour. Keyboard
+   users get the global :focus-visible ring rather than this, which is the stronger signal
+   of the two. */
+@media (hover: hover) {
+  :is(.prose, .about) a:hover,
+  .post__back a:hover { color: var(--crimson-lift); }
+}
+
+/* The rule that used to sit here held linked headings at their own 500 against the
+   global `a { font-weight: 700 }`. That global is `inherit` now, so a link in a heading
+   already takes the heading's weight and the override has nothing left to override. */
 
 :focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: 2px; }
 
@@ -200,12 +229,56 @@ main { padding-block: var(--sp-64) var(--sp-120); }
 
    Padding is --sp-40 rather than --sp-48: one line of --fs-small needs air, not a band. */
 .site-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: var(--sp-48);
+  row-gap: var(--sp-30);
   padding-inline: max(var(--root-pad), calc((100% - var(--w-page)) / 2));
   padding-block: var(--sp-40);
   font-size: var(--fs-small);
   line-height: var(--lh-base);
   letter-spacing: 0.02em;
   color: var(--page-meta);
+}
+
+/* Copyright left, profiles right — the header's own arrangement, so the two bars that
+   bracket the page read as a pair rather than as two unrelated strips. The gap is the
+   header nav's, derived from the same token so the two rows of links stay in step. */
+.site-foot p { margin: 0; }
+.site-foot__social { display: flex; flex-wrap: wrap; column-gap: calc(var(--fs-nav) * 0.8); }
+/* Size and case come back from .site-foot, not from the global `nav a` two rules up.
+   That selector is unscoped — it reaches every <nav> on the site — so these links were
+   arriving at --fs-nav (19.2px) in small-caps beside a 14px copyright line. Overridden
+   here rather than by scoping `nav a` to the header, because .adj and .toc-rail both
+   read its `text-decoration: none`, and narrowing it would underline every adjacent-post
+   link at rest. small-caps is dropped with the size: at one shared font-size its
+   lowercase would still draw shorter than the line it is meant to match. */
+.site-foot__social a {
+  color: inherit;
+  font-size: inherit;
+  font-variant-caps: normal;
+  letter-spacing: inherit;
+  font-weight: 400;
+  text-decoration: none;
+}
+/* The rule under these is the header's wipe now, drawn by .hover-wipe further down. This
+   link is the one of the seven that cannot carry that class — it is written in
+   Base.astro — so the shared rule names the selector instead of the markup carrying it.
+   --wipe-y pulls the rule up to where the auto underline used to sit. Measured on the live
+   footer at 1700: the old 1px underline's top row was 801.20 and the unlifted background's
+   was 802.20, so the lift is one pixel, written as 0.07em so it tracks --fs-small's clamp
+   instead of drifting against it down to 11px. (0.21em was the first guess, from the
+   padding box being 4px under the baseline; it put the rule two pixels too high.)
+   The colour step stays, and moves inside the pointer gate together with the rule: this
+   is the header's "the item takes the accent" gesture, and a colour that latches after a
+   tap on a touch screen is exactly the defect the gate exists for. */
+.site-foot__social a { --wipe-y: calc(100% - 0.07em); }
+.site-foot__social a:focus-visible { color: var(--crimson-dark); background-size: 100% 2px; }
+
+@media (hover: hover) {
+  .site-foot__social a:hover { color: var(--crimson-dark); background-size: 100% 2px; }
 }
 
 /* Page name and navigation.
@@ -318,6 +391,137 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 @media (hover: hover) {
   body > header nav a:hover { color: var(--crimson-dark); }
   body > header nav a:hover::before { transform: scaleX(1); }
+}
+
+/* --- The same wipe, everywhere else a rule appears on hover --------------------
+   Seven more links grow an underline on hover and used to do it with
+   `text-decoration: underline`, which has no in-between state to animate: the rule is
+   either absent or whole. This gives them the header's gesture -- a 2px crimson rule
+   opening from the centre over 0.3s -- without giving them the header's technique.
+
+   The header draws its rule with an absolutely positioned ::before at `bottom: 0`. That
+   is right for a nav item and wrong for most of these, because an absolute bar is one
+   rectangle spanning the element's whole padding box. Five of the seven wrap in the corpus
+   as it stands -- entry titles on the Writing index (2 lines at 375), adjacent-post titles
+   (2 at 375), rail entries (2 at 1440, 4 once hover lifts the clamp), inline contents
+   headings (3 at 320), project names on /code/ (2 lines from 360 down: one name at 360,
+   two at 320, three at 280) -- and on a wrapped link that rectangle lands under the last
+   line only at the width of the widest, reading as a bottom border rather than an
+   underline. The project names are the narrow escape: at 375 the longest still fits, by
+   6.45px -- 321.55px in a 328px column -- and it is the 360px column, 313px wide, that
+   takes it to two lines. Two are worse than wrapping: .toc-rail__link and .adj__title
+   are block boxes that fill their column, so the bar would be 265px and 832px wide under
+   87px and 341px of text even on a single line.
+
+   A background gradient sized 0% -> 100% fails the same way by default, because the
+   background positioning area of an inline box is the union of its fragments. What fixes
+   it is `box-decoration-break: clone`, which hands every line fragment its own copy of
+   the background, each opening from its own centre. Measured on this site's own worst
+   cases: 2 rules of 186 and 235px on a two-line entry title, 3 of 221/231/156 on a
+   three-line contents heading, 4 on a rail entry lifted out of its clamp -- one per line,
+   each the width of its own line. The two blockified sites get one inline wrapper in the
+   markup so they have fragments to clone, and the wrappers cost nothing measurable --
+   clamp, ellipsis, the rail's clamp-lift, the scroll spy's querySelectorAll and every
+   layout figure come out unchanged.
+
+   On a single-line inline link the two techniques are pixel-identical, which is worth
+   knowing before anyone tries to unify them: the absolute bar's containing block and the
+   background positioning area are both the fragment's padding box. Both drawn on the same
+   project name and scanned out of the captured frames, they occupy rows 148.88 and 149.88,
+   x 330.50, width 104 -- the same pixels. So the header keeps its ::before rather than
+   being folded in here: converting it would trade a compositor-driven transform for a
+   repainting background animation to save one declaration, and the header is the reference
+   everything else is being matched to.
+
+   The cost, stated plainly: a rule you draw yourself cannot skip ink. Where
+   `text-decoration` used to break around a descender this runs straight through it --
+   the same look as `text-decoration-skip-ink: none`. On the 21 Korean titles nothing
+   changes; on the Latin ones (journalctl, AI Odyssey, ARP Spoofing) the rule crosses the
+   descender. That is the price of the gesture, and there is no third option: skip-ink
+   belongs to text-decoration, and text-decoration has nothing to animate.
+
+   Each site then puts the rule back where its own `text-underline-offset` had it, because
+   100% -- the bottom of the padding box -- sits a different distance under the baseline at
+   every type size and family here. Those distances are not flattened to one number on
+   purpose: the header's own rule sits 0.254em under its baseline, deeper than six of these
+   sit today, because a flex item's bar hangs at the line-box bottom rather than the
+   glyph-box bottom. What is being copied is the motion, not the distance.
+
+   There are two knobs and they are not interchangeable, which is a fact about
+   `background-clip` rather than a matter of taste. --wipe-y moves the rule UP: the
+   background is clipped to the border box, so a position past 100% is not drawn at all.
+   Measured, before this was understood: `calc(100% + 0.14em)` on the kicker rendered
+   nothing, and `calc(100% + 0.07em)` on the rail rendered the rule 1px thick instead of
+   2px, silently clipped. To sit LOWER, a site adds `padding-block-end`, which moves the
+   bottom of the box the background is clipped to.
+
+   On an inline box that is free, and "free" here is an A/B measurement rather than a
+   claim about the spec: with the padding removed from each of the four sites that use it,
+   every containing block, every sibling and document.scrollHeight come back byte-identical
+   to three decimals, and the single number that changes is the link's own border box
+   (project 26 -> 25, kicker 19.97 -> 18.00, contents 19 -> 18). Vertical padding on an
+   inline box does not enter its line box, so nothing around it moves; it grows only the
+   box the background is clipped to, and incidentally the link's own hit target by a pixel
+   or two downward. On a BLOCK box the same padding would move everything below it, which
+   is why the footer link -- the only block-level site of the seven -- is tuned with
+   --wipe-y instead.
+
+   Where the old and the new position disagree by a pixel and there is no exact answer, the
+   rule goes a pixel lower rather than a pixel higher: it no longer skips ink, so the extra
+   pixel is the one that keeps it off a descender.
+
+   No local reduced-motion query. The guard at the foot of this file already selects
+   *, *::before and *::after, the transition degrades to an instant appear, and a second
+   query here would be dead code. */
+/* The footer bar is the only place left that takes this; the body links that used to
+   carry .hover-wipe now step colour instead, the way the reference's body links do. */
+.site-foot__social a {
+  background-image: linear-gradient(var(--crimson), var(--crimson));
+  background-repeat: no-repeat;
+  background-position: 50% var(--wipe-y, 100%);
+  background-size: 0% 2px;
+  -webkit-box-decoration-break: clone;
+          box-decoration-break: clone;
+  transition: background-size 0.3s ease;
+}
+
+/* The one mode the background rule cannot reach, handed back.
+
+   Forced colours drop `background-image` outright -- measured in every one of the seven
+   sites with forced-colors emulated, `background-image` computes to `none`, so the rule
+   that marks a hovered link is simply not painted. The colour step goes with it: `color`
+   is forced to LinkText at rest and on hover alike. What these seven had before this
+   change was `text-decoration: underline`, which the UA paints in the forced text colour
+   and survives the mode intact -- the prose links on this site still draw theirs there
+   today. Without a fallback a High Contrast reader gets no hover or focus affordance at
+   all on any of the seven, where they had one before.
+
+   Same trade [slug].astro already makes twice, for the task-list checkbox and the
+   :target footnote: what is a background elsewhere is a real border or a real decoration
+   here.
+
+   Only the footer pair lives in this file. The other six are written beside their own
+   trigger rules in the page that owns them, because an Astro page scopes a rule by adding
+   its attribute to EVERY compound -- `.project__name[cid] a[cid]` -- which ties with a
+   selector of the same shape written here and then wins on stylesheet order. Measured
+   before the move: .project__name and .entry__title computed `text-decoration-line: none`
+   on hover in this mode while the other five computed `underline`. Inside the page the
+   same scope lands on both rules and the pseudo-class settles it. .site-foot__social a
+   cannot move -- its markup is Base.astro's -- and does not need to: its rest rule is in
+   this file, above this block.
+
+   Two queries rather than one nested pair: the pointer half keeps the (hover: hover)
+   gate, because a latched underline after a tap is the same defect in this mode as in
+   any other.
+
+   Not applied to the header nav, which shares the blind spot and predates this work: its
+   bar is a pseudo-element background and disappears here too. Changing the reference is a
+   separate decision from matching it. */
+@media (forced-colors: active) {
+  .site-foot__social a:focus-visible { text-decoration: underline; }
+}
+@media (forced-colors: active) and (hover: hover) {
+  .site-foot__social a:hover { text-decoration: underline; }
 }
 
 /* ── Code blocks ──────────────────────────────────────────────────────────────

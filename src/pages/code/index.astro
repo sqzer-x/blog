@@ -131,9 +131,47 @@ const ko = projects.some((p) => hasHangul(p.data.name, p.body));
      reference sets its own outbound links at. The underline comes back on hover and on
      keyboard focus, where a second signal is cheap and colour alone would be the only cue
      that the pointer is over a target. */
-  .project__name a { color: var(--crimson); text-decoration: none; }
-  .project__name a:hover,
-  .project__name a:focus-visible { color: var(--crimson-dark); text-decoration: underline; }
+  /* The rule that comes back on hover is the header nav's wipe, opening from the centre
+     over 0.3s -- see .hover-wipe in base.css. The name already wraps, which is why it
+     takes the per-fragment technique rather than an absolute bar: an absolute bar would
+     draw one rectangle under the last line at the width of the widest. Measured: at 375
+     the longest name fits by 6.45px (321.55px in a 328px column) and nothing wraps, but
+     the column is 313px at 360 and 273px at 320, and USFX takes two lines from 360 down,
+     UDFX from 320, OMMP from 280. Hovered at 320, USFX draws two rules of 144 and 171px,
+     one per line, each opening from its own centre.
+     The rule needs to sit one pixel lower than the padding-box bottom, not higher:
+     measured at 1700, the auto underline's top row was 148.88 and the unpadded background's
+     147.88. Pushing down is `padding-block-end`, never --wipe-y -- the background is
+     clipped to the border box and a position past 100% is simply not painted. This link is
+     inline, so the padding costs no layout: A/B'd with it removed, .project__name,
+     .project__about and .projects and the document height are identical to three decimals
+     at 1700 and at 375, and the only number that moves is the link's own border box, 26 ->
+     25. 0.05em is that pixel at 20px and 0.9px at the 18px floor.
+     The colour keeps stepping to --crimson-dark, and both halves move inside the pointer
+     gate: a bare :hover latches after a tap on a touch screen and would leave the project
+     marked until the next tap elsewhere. :focus-visible stays outside the gate -- it is
+     the keyboard path, and it had no underline at all before the gate went in. */
+  .project__name a { color: var(--crimson); text-decoration: none; padding-block-end: 0.05em; }
+  /* Hover is a colour step, not a rule. The reference draws its animated underline in one
+     place only - the header nav - and every link in the body of a page, its writing index,
+     its code list and even its year rail, simply lifts from rgb(160,32,32) to
+     rgb(192,48,48) with no decoration at all. Measured over CDP on all three. */
+  .project__name a:focus-visible { color: var(--crimson-lift); }
+  @media (hover: hover) {
+    .project__name a:hover { color: var(--crimson-lift); }
+  }
+
+  /* Forced colours drop background-image, so the wipe is not painted there at all and the
+     colour step is overridden too -- see the note beside .hover-wipe in base.css. The
+     underline this rule replaced is what that mode can still draw, so it comes back here
+     and only here. Written in this file rather than in base.css because Astro scopes a
+     page rule on every compound, which outranks the same selector written globally. */
+  @media (forced-colors: active) {
+    .project__name a:focus-visible { text-decoration: underline; }
+  }
+  @media (forced-colors: active) and (hover: hover) {
+    .project__name a:hover { text-decoration: underline; }
+  }
 
   /* margin-top is 0.375rem, matching .entry__deck on /writing/ — a description belongs
      to the name above it, so the gap has to read as smaller than the --sp-32 between

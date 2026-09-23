@@ -204,6 +204,13 @@ const ld = {
                 document: how-to-win's list is 25 English headings to 3 Korean, and
                 langOf() drops an agreeing value so a reader is not switched for them.
                 Same call the Writing index makes on the same kind of string. */}
+            {/* The <span> exists only so the hover rule has an inline box to draw on. The
+                link itself is a -webkit-box with a 2-line clamp, which Chrome blockifies,
+                so it fills the 265px rail column while its text measures 87px -- a rule on
+                it would be a 265px bar under 87px of heading. The span's fragments are the
+                text, per line (measured 257.98 / 132.86 on a wrapped entry), and the clamp,
+                the ellipsis, the hover clamp-lift and the scroll spy's
+                querySelectorAll on .toc-rail__link all read the <a> and are unaffected. */}
             <a class="toc-rail__link" href={`#${h.slug}`} data-target={h.slug} lang={langOf(h.text, 'en')}>{h.text}</a>
           </li>
         ))}
@@ -248,6 +255,9 @@ const ld = {
           {older && (
             <a class="adj__item" href={postUrl(older)} rel="prev">
               <span class="adj__label">Older</span>
+              {/* Inline wrapper for the same reason as the rail entry above: .adj__title is
+                  a grid item and so a block box filling its 832-928px column, while the
+                  title measures 341px. The span is what the rule is drawn on. */}
               <span class="adj__title">{older.data.title}</span>
             </a>
           )}
@@ -673,8 +683,41 @@ const ld = {
     border-block-start: 4px solid var(--ppc-ui);
     margin-block-end: var(--sp-40);
   }
-  .post__kicker a { color: inherit; text-decoration: none; }
-  .post__kicker a:hover { text-decoration: underline; text-underline-offset: 0.3em; }
+  /* The header nav's wipe, via .hover-wipe in base.css. Neither of these two ever wraps
+     ("Writing" and a four-digit year), but they take the same shared rule as everything
+     else rather than a private copy of the absolute-bar technique.
+     This is the one site whose rule sits lower than the padding-box bottom, and the way to
+     do that is padding, not --wipe-y: the background is clipped to the border box, so a
+     position past 100% paints nothing. Measured, when this was written as
+     `calc(100% + 0.14em)`: the rule disappeared completely. `padding-block-end` moves the
+     box the background is clipped to, and on an inline box it changes no line box and no
+     layout: A/B'd with it removed, .post__kicker, .post__title, .post__byline and .prose
+     and the document height are identical to three decimals at 1700 and at 375, and the
+     only number that moves is this link's own border box, 19.97 -> 18.00.
+     0.14em is the 2px that puts the rule back where `text-underline-offset: 0.3em` had it,
+     4px under the baseline -- the deepest offset on the site, because this line is
+     uppercase with 1.68px of tracking and the rule has to clear the caps, not an
+     x-height. */
+  .post__kicker a { color: inherit; text-decoration: none; padding-block-end: 0.14em; }
+  /* Hover is a colour step, not a rule. The reference draws its animated underline in one
+     place only - the header nav - and every link in the body of a page, its writing index,
+     its code list and even its year rail, simply lifts from rgb(160,32,32) to
+     rgb(192,48,48) with no decoration at all. Measured over CDP on all three. */
+  .post__kicker a:focus-visible { color: var(--crimson); }
+  @media (hover: hover) {
+    .post__kicker a:hover { color: var(--crimson); }
+  }
+
+  /* Forced colours drop background-image, so the wipe is not painted there and the colour
+     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
+     this rule replaced is what that mode can still draw, so it comes back here, with the
+     offset it carried before. */
+  @media (forced-colors: active) {
+    .post__kicker a:focus-visible { text-decoration: underline; text-underline-offset: 0.3em; }
+  }
+  @media (forced-colors: active) and (hover: hover) {
+    .post__kicker a:hover { text-decoration: underline; text-underline-offset: 0.3em; }
+  }
   .post__sep { margin-inline: 0.35em; color: var(--page-hairline); }
 
   /* The date sits in the byline now, not out in the rail.
@@ -800,8 +843,35 @@ const ld = {
      sysmon's seven and journalctl's four with them. */
   .toc__item[data-level="1"] { padding-inline-start: var(--sp-40); }
   .toc__item[data-level="2"] { padding-inline-start: calc(2 * var(--sp-40)); }
-  .toc__item a { font-weight: 400; text-decoration: none; color: var(--page-fg); }
-  .toc__item a:hover { text-decoration: underline; }
+  /* Headings here wrap from 768 down -- counted over all 136 contents entries in the
+     corpus: 1 wraps at 768, 2 at 430, 5 at 375, 10 at 320, and at 320 three of them take a
+     third line. That is why the rule is .hover-wipe's per-fragment background and not an
+     absolute bar: each line gets its own rule opening from its own centre, measured at 3
+     rules of 221 / 231 / 156px on the worst of them. The 1px of padding puts the rule on
+     the row the auto underline
+     had at 1024 (top 401.53) and one row below it at 768, which is the right way to miss
+     by a pixel: these headings are the most Latin text on the page -- DoH(DNS over HTTPS),
+     journalctl, sysmon -- and the rule can no longer skip their descenders, so the pixel
+     is spent clearing them rather than crowding them. Same A/B as the kicker: .toc__item,
+     .toc__list, .prose and the document height unmoved, only the link's own box 19 -> 18.
+     Colour stays --page-fg at rest; the rule itself is crimson, like the header's. */
+  .toc__item a { font-weight: 400; text-decoration: none; color: var(--page-fg);
+    padding-block-end: 0.07em; }
+  .toc__item a:focus-visible { color: var(--crimson); }
+  @media (hover: hover) {
+    .toc__item a:hover { color: var(--crimson); }
+  }
+
+  /* Forced colours drop background-image, so the wipe is not painted there and the colour
+     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
+     this rule replaced is what that mode can still draw, so it comes back here, with the
+     offset it carried before. */
+  @media (forced-colors: active) {
+    .toc__item a:focus-visible { text-decoration: underline; }
+  }
+  @media (forced-colors: active) and (hover: hover) {
+    .toc__item a:hover { text-decoration: underline; }
+  }
 
   /* ── the rail ────────────────────────────────────────────────────────────
      The reference site floats a fixed #leftnav at `left: calc(50% - 31em)` and slides it
@@ -1097,7 +1167,40 @@ const ld = {
     border-block-end: 0;
     padding-block-end: 0;
   }
-  .toc-rail__link:hover { color: var(--page-fg); text-decoration: underline; text-underline-offset: 0.18em; }
+  /* Hover lives on the <a> and the rule is drawn on the <span> inside it -- see the
+     markup note beside the wrapper. The 1px of padding-block-end is what puts the rule
+     where `text-underline-offset: 0.18em` had it. It has to be padding: written as
+     `--wipe-y: calc(100% + 0.07em)` the rule came out 1px thick instead of 2px, clipped
+     by the border box, which is the kind of thing only a pixel scan catches. The span is
+     inline, so the padding changes no layout at all here -- A/B'd with it removed, even
+     .toc-rail__link's own box is unchanged, because the padding sits inside the clamped
+     box rather than around it -- and it is not eaten by the link's `overflow: hidden`
+     either: measured, the rule draws its full 2px inside the clamp, on every visible line.
+     Checked on the cognitive-dissonance post at 1440, the one article with entries past
+     two lines: rest clamps to 2 lines with the ellipsis intact, hover lifts to 4
+     (41.63 -> 83.25px) and all four lines carry their own rule.
+     The colour step to --page-fg stays and moves inside the pointer gate with the rule:
+     on a touch screen a bare :hover would leave one rail entry darkened until the next
+     tap elsewhere, which on a rail of up to 28 entries reads as a wrong current-item
+     mark. The
+     clamp-lift two rules down is deliberately left ungated -- it is a way to read a
+     clipped heading, not a way to mark one, and gating it would take that away from a
+     touch reader entirely. */
+  .toc-rail__link:focus-visible { color: var(--crimson); }
+  @media (hover: hover) {
+    .toc-rail__link:hover { color: var(--crimson); }
+  }
+
+  /* Forced colours drop background-image, so the wipe is not painted there and the colour
+     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
+     this rule replaced is what that mode can still draw, so it comes back here, with the
+     offset it carried before. */
+  @media (forced-colors: active) {
+    .toc-rail__link:focus-visible { text-decoration: underline; text-underline-offset: 0.18em; }
+  }
+  @media (forced-colors: active) and (hover: hover) {
+    .toc-rail__link:hover { text-decoration: underline; text-underline-offset: 0.18em; }
+  }
   .toc-rail__link[aria-current] { color: var(--ppc-text); font-weight: 700; }
   /* Reading the clipped half of a heading should not need a pointer. */
   .toc-rail__link:hover,
@@ -1749,9 +1852,9 @@ const ld = {
   @media (forced-colors: active) {
     .prose .footnotes li:target { background: none; border-inline-start: 2px solid; }
   }
-  /* Both ends of the round trip. The global <a> rule is 700 and underlined, which on a bare
-     numeral and a bare arrow is a heavy mark for a small target, so both take the accent
-     colour instead and keep the body's weight. They stay real links with a real focus ring
+  /* Both ends of the round trip. These keep an explicit accent colour of their own rather
+     than inheriting the global link colour, because a bare numeral and a bare arrow are
+     small targets that want the darker end of the family. They stay real links with a real focus ring
      -- the site's :focus-visible outline is untouched here. */
   .prose [data-footnote-ref],
   .prose .data-footnote-backref {
@@ -1759,6 +1862,14 @@ const ld = {
     font-weight: 400;
     color: var(--ppc-text);
   }
+  /* The one hover underline on the site that does NOT take the header's wipe, and the
+     reason is that these two are not navigation labels. They are a bracketed numeral and
+     a return arrow, roughly 8px of ink each, set inside running prose where every other
+     link is underlined at rest. A 0.3s centre-out wipe across 8px is a flicker rather
+     than a gesture, and drawing it in --crimson would put an accent bar mid-paragraph
+     that reads as emphasis on the word beside it. They are also a deliberate pair -- same
+     colour, same weight, same rule -- so animating the backref alone would split them.
+     Nothing renders here today either way: there are no footnotes in content/writing/. */
   .prose [data-footnote-ref]:hover,
   .prose .data-footnote-backref:hover { text-decoration: underline; }
   /* The backref is the last thing on a note's last line and reads as punctuation, not as a
@@ -1810,7 +1921,31 @@ const ld = {
     word-break: keep-all;
     text-wrap: balance;
   }
-  .adj__item:hover .adj__title { text-decoration: underline; text-underline-offset: 0.14em; }
+  /* The card is the trigger, as before -- the whole .adj__item is the link, and the hit
+     area is unchanged. The rule is drawn on the inline span inside .adj__title so it stops
+     at the text instead of running the width of the column.
+     No --wipe-y: the padding-box bottom of a 20px line is 3px under the baseline, which is
+     exactly where `text-underline-offset: 0.14em` had it. The rule does not move; it gains
+     the motion and the crimson. :focus-visible is on the <a>, which is the card, so the
+     keyboard sees the same mark the pointer does.
+     Hit area re-measured after the wrapper went in: the card is still 1024 x 61 at 1700
+     and 328 x 82.66 on a wrapped title at 375, and all four corners and the centre still
+     hit-test to the link. */
+  .adj__item:focus-visible .adj__title { color: var(--crimson); }
+  @media (hover: hover) {
+    .adj__item:hover .adj__title { color: var(--crimson); }
+  }
+
+  /* Forced colours drop background-image, so the wipe is not painted there and the colour
+     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
+     this rule replaced is what that mode can still draw, so it comes back here, with the
+     offset it carried before. */
+  @media (forced-colors: active) {
+    .adj__item:focus-visible .adj__title { text-decoration: underline; text-underline-offset: 0.14em; }
+  }
+  @media (forced-colors: active) and (hover: hover) {
+    .adj__item:hover .adj__title { text-decoration: underline; text-underline-offset: 0.14em; }
+  }
   .post__back {
     grid-column: 2;
     margin-block-start: var(--sp-48);

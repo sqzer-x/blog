@@ -33,5 +33,5 @@ What I write is under [writing](/writing/), and the tools I have published are u
 generator that builds [sqzer.com](https://sqzer.com/). There is more on
 [GitHub](https://github.com/sqzer-x), a service of mine at
 [lacrymaria.com](https://lacrymaria.com), and I am on
-[LinkedIn](https://www.linkedin.com/in/devastator-x). Mail reaches me at
+[LinkedIn](https://www.linkedin.com/in/sqzer). Mail reaches me at
 contact.extinct932@passmail.net.

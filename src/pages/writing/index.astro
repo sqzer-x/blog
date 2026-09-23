@@ -215,7 +215,6 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
   }
 
   .entry:last-child { border-bottom: none; }
-  .entry:hover { background-color: var(--ppc-wash); }
 
   .entry__date {
     grid-column: 1;
@@ -255,10 +254,59 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     inset: 0;
   }
 
-  .entry:hover .entry__title a {
-    text-decoration: underline;
-    text-underline-offset: 0.14em;
-    text-decoration-thickness: from-font;
+  /* The row is still the trigger, and the hit area above is untouched: the rule is drawn
+     by .hover-wipe (base.css) on the link's own background, not by a second pseudo-element,
+     because ::before is already spent on the full-row hit box.
+
+     This is the site that decided the technique. Korean titles wrap here and nowhere on
+     this page is the column wide enough to stop them: 5 entries wrap at 320, 2 at 375, 1
+     at 430, none from 768 up. An absolutely positioned bar -- the header's own method --
+     would draw one rectangle under the last line at the width of the widest, i.e. a bottom
+     border on the title block. `box-decoration-break: clone` gives each line fragment its
+     own rule, each opening from its own centre: the worst case at 375 is 235.44 x 48.33
+     over 2 fragments of 186.45 and 235.44, and it gets two rules of those widths.
+
+     `clone` is documented to disable `text-wrap: balance`, which these titles use, so it
+     was A/B'd rather than assumed: every entry's box, fragment count, fragment widths and
+     the document height are identical with `clone` and with `slice` at 320, 375, 430 and
+     768. The balancer only diverges in columns narrower than this page ever gets.
+
+     No --wipe-y. The background's 100% is the padding-box bottom, which lands 3px under a
+     20px baseline -- the same row `text-underline-offset: 0.14em` was putting it on, so
+     the rule does not move at all here, it only acquires the motion.
+
+     What does change is colour: from-font black becomes --crimson, which is what "like the
+     header" means and is the first accent on this index. A 2px rule is a non-text element
+     needing 3:1; crimson measures 7.25:1 on --page-bg. */
+  @media (hover: hover) {
+    /* The row wash used to sit outside this gate while the rule under the title sat inside
+       it. On a touch screen :hover latches after a tap, so a tapped row kept its wash until
+       the next tap elsewhere while the title's rule did not — one half of the row's hover
+       state stuck to it and the other half did not. Both halves are the same gesture and
+       now share the same gate. */
+    .entry:hover { background-color: var(--ppc-wash); }
+    .entry:hover .entry__title a { color: var(--crimson); }
+  }
+  /* Keyboard parity, which this row never had: the outline below marks the row, and this
+     marks the title the same way the pointer does. Outside the gate on purpose.
+     The row hit area is re-measured after the change and unmoved: 1024 x 61, with all
+     four corners and the centre hit-testing to the link through the ::before above. */
+  /* Hover is a colour step, not a rule. The reference draws its animated underline in one
+     place only - the header nav - and every link in the body of a page, its writing index,
+     its code list and even its year rail, simply lifts from rgb(160,32,32) to
+     rgb(192,48,48) with no decoration at all. Measured over CDP on all three. */
+  .entry__title a:focus-visible { color: var(--crimson); }
+
+  /* Forced colours drop background-image, so the wipe is not painted there at all and the
+     colour step is overridden too -- see the note beside .hover-wipe in base.css. The
+     underline this rule replaced is what that mode can still draw, so it comes back here
+     and only here. Written in this file rather than in base.css because Astro scopes a
+     page rule on every compound, which outranks the same selector written globally. */
+  @media (forced-colors: active) {
+    .entry__title a:focus-visible { text-decoration: underline; text-underline-offset: 0.14em; }
+  }
+  @media (forced-colors: active) and (hover: hover) {
+    .entry:hover .entry__title a { text-decoration: underline; text-underline-offset: 0.14em; }
   }
 
   .entry__title a:focus-visible { outline: 0; }
