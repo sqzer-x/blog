@@ -13,11 +13,26 @@ const dateString = z.union([z.string(), z.date()]).transform((v) =>
   typeof v === 'string' ? v.slice(0, 10) : v.toISOString().slice(0, 10),
 );
 
-/** An empty `deck:` parses as null, which fails validation unless absorbed to undefined. */
-const optText = z.preprocess(
-  (v) => (v === null || v === '' ? undefined : v),
-  z.string().optional(),
-);
+/**
+ * YAML reads a key with nothing after it — `deck:` — as null, and null satisfies neither
+ * `.optional()`, which admits undefined and not null, nor `.default([])`, which fires on
+ * undefined only. Left alone, every optional field rejects the blank line while accepting
+ * the key being absent altogether, which is exactly backwards for a site whose posts are
+ * copied from a template of blanks.
+ *
+ * So each optional field is wrapped here, and both spellings of "nothing" — bare null and
+ * the quoted empty string `deck: ""` — are absorbed to undefined before the field's own
+ * schema sees the value. The field schema is still the one that runs, so `type: novel` and
+ * `tags: security` are rejected as loudly as before; only emptiness is reinterpreted.
+ *
+ * This is what content/_template.md stands on: a line the author leaves blank parses to
+ * undefined, and undefined is what every page already tests for before it prints anything.
+ */
+const blankable = <T extends z.ZodType>(field: T) =>
+  z.preprocess((v) => (v === null || v === '' ? undefined : v), field);
+
+/** Optional free text. Absent, `deck:` and `deck: ""` all arrive as undefined. */
+const optText = blankable(z.string().optional());
 
 const slugOf = ({ entry }: { entry: string }) =>
   asciiLower(entry.replace(/^.*\//, '').replace(/\.md$/, ''));
@@ -31,10 +46,12 @@ const writing = defineCollection({
     date: dateString,
     /** In an index without images the deck carries the entry. May be empty until backfilled. */
     deck: optText,
-    /** Sub-views split on this value rather than on a URL segment. */
-    type: z.enum(['essay', 'research']).optional(),
-    tags: z.array(z.string()).default([]),
-    draft: z.boolean().optional(),
+    /** Sub-views split on this value rather than on a URL segment. Untyped is the norm. */
+    type: blankable(z.enum(['essay', 'research']).optional()),
+    /** A blank `tags:` and `tags: []` mean the same thing, and neither prints a tag list. */
+    tags: blankable(z.array(z.string()).default([])),
+    /** Blank publishes. Only an explicit `draft: true` withholds a post. */
+    draft: blankable(z.boolean().optional()),
   }),
 });
 
@@ -89,7 +106,8 @@ const code = defineCollection({
     name: z.string(),
     url: projectUrl,
     order: z.number().int(),
-    draft: z.boolean().optional(),
+    /** Blankable for the same reason the writing fields are: `draft:` is null, not false. */
+    draft: blankable(z.boolean().optional()),
   }),
   /*
    * No `description` field. The one-sentence description is the markdown BODY of each

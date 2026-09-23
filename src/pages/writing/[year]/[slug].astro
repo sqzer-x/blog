@@ -164,7 +164,13 @@ const ld = {
   headline: post.data.title,
   datePublished: post.data.date,
   inLanguage: lang,
-  description,
+  /* Omitted rather than emitted empty. `description` is '' when the deck is blank AND
+     excerpt() finds no paragraph to fall back on — a post copied from the template whose
+     body has not been written yet. Both other sinks already drop it in that case:
+     Base.astro guards <meta name="description"> behind a truth test, and @astrojs/rss
+     omits the element. This key was the last place a blank field still put an empty
+     value into the page, asserting that the post has an empty description. */
+  ...(description ? { description } : {}),
   mainEntityOfPage: new URL(postUrl(post), Astro.site).href,
 };
 ---
@@ -273,7 +279,12 @@ const ld = {
     </footer>
   </article>
   </div>
-  <script type="application/ld+json" set:html={JSON.stringify(ld)} />
+  {/* JSON.stringify does not escape `<`, so a deck or a title containing `</script>` closes
+      this element early and the rest of the object is parsed as HTML. The title is the
+      author's and the deck is about to become a field they fill in freely, so this is a
+      string they can type, not a string only the build produces. `<` is escaped as its
+      < form, which is the same character to a JSON parser and inert to an HTML one. */}
+  <script type="application/ld+json" set:html={JSON.stringify(ld).replace(/</g, '\\u003c')} />
 </Base>
 
 <script>
