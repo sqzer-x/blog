@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 import { satteri } from '@astrojs/markdown-satteri';
 import satteriFigure from './src/lib/satteri-figure.mjs';
 import satteriProse from './src/lib/satteri-prose.mjs';
@@ -89,6 +90,10 @@ const codeBlock = {
 
 export default defineConfig({
   site: 'https://blog.sqzer.com',
+  /* The Hugo site this replaced shipped a sitemap and the migration lost it. robots.txt
+     names it, so it has to exist: a robots line pointing at a 404 is the same defect as
+     the <head> feed link that pointed at nothing. */
+  integrations: [sitemap()],
   output: 'static',
   // Every canonical URL ends in a trailing slash; the directory format emits dist/<path>/index.html.
   trailingSlash: 'always',
