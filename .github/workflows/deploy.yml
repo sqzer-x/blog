@@ -5,22 +5,35 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# Nothing granted at workflow level; each job names what it needs. The build job runs
+# every npm dependency, mermaid and Chrome, so it can read the repository and nothing
+# more. Only the deploy job, which runs one pinned action, can write to Pages or mint an
+# OIDC token.
+permissions: {}
 
 # Serialise deploys without cancelling one that is already running.
 concurrency:
   group: pages
   cancel-in-progress: false
 
+# Actions are pinned to commit SHAs rather than tags: a tag can be moved to other code with
+# no change in this repository, a SHA cannot. The comment after each pin names the release.
+# Dependabot proposes the bumps (.github/dependabot.yml).
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: withastro/action@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in this job pushes, so the token is not left behind in .git/config.
+          persist-credentials: false
+      # withastro/action installs with `npm install`, which quietly resolves new versions
+      # when package.json and package-lock.json disagree. `npm ci` refuses instead; as a
+      # dry run it does so without installing anything or running any package's scripts.
+      - run: npm ci --dry-run --ignore-scripts
+      - uses: withastro/action@3eafd002e65cc31b4f0eae0bb05450d521562247 # v6.1.3
         with:
           node-version: 24
           # Must go through npm run build so that prebuild — the content gate — runs.
@@ -39,9 +52,13 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # The minimum actions/deploy-pages documents for the job that deploys.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
