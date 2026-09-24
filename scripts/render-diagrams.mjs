@@ -197,6 +197,17 @@ async function connect(wsUrl) {
   };
 }
 
+/**
+ * `promise`, or a rejection after `ms`. The timer is cleared either way: a bare
+ * Promise.race leaves it pending, and Node then stays alive until it fires, which held
+ * every successful render open for the full two-minute render budget.
+ */
+function within(promise, ms, message) {
+  let timer;
+  const guard = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); });
+  return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
+}
+
 const started = Date.now();
 // A throwaway profile per run, so a Chrome the author already has open cannot be joined
 // (which would hand back a browser whose fonts and flags are not the ones set here).
@@ -224,7 +235,7 @@ const fail = (message) => {
 const watchdog = setTimeout(() => fail('the browser stopped responding'), RENDER_TIMEOUT_MS * 2);
 child.on('error', (error) => fail(`could not start ${browser} — ${error.message}`));
 
-const wsUrl = await Promise.race([
+const wsUrl = await within(
   new Promise((resolve) => {
     let buffered = '';
     child.stderr.on('data', (chunk) => {
@@ -233,8 +244,9 @@ const wsUrl = await Promise.race([
       if (match) resolve(match[0]);
     });
   }),
-  new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30_000)),
-]).catch(() => fail(`${browser} started but never announced a debugging endpoint`));
+  30_000,
+  'timeout',
+).catch(() => fail(`${browser} started but never announced a debugging endpoint`));
 
 const origin = wsUrl.replace('ws://', 'http://').replace(/\/devtools.*/, '');
 const targets = await (await fetch(`${origin}/json/list`)).json();
@@ -287,10 +299,11 @@ const expression = `(async () => {
   return JSON.stringify(out);
 })()`;
 
-const result = await Promise.race([
+const result = await within(
   page.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }),
-  new Promise((_, reject) => setTimeout(() => reject(new Error('render timed out')), RENDER_TIMEOUT_MS)),
-]).catch((error) => fail(error.message));
+  RENDER_TIMEOUT_MS,
+  'render timed out',
+).catch((error) => fail(error.message));
 
 if (result.exceptionDetails) fail(`render failed: ${JSON.stringify(result.exceptionDetails).slice(0, 800)}`);
 
@@ -336,6 +349,9 @@ console.log(
 if (process.env.CI) {
   console.log('  note: these were rendered on CI, so the committed cache is behind — run `npm run diagrams` and commit.');
 }
+// Explicit, like every other exit path in this file. On Windows a Chrome that is slow to
+// die can hold the stderr pipe or the CDP socket open for minutes after the work is done.
+process.exit(0);
 
 /**
  * Astro's content layer caches rendered Markdown keyed on the *Markdown* file's digest, and
