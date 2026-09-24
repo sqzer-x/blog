@@ -2,8 +2,10 @@
 import Base from '../layouts/Base.astro';
 import { getEntry, render } from 'astro:content';
 import { hasHangul } from '../lib/hangul';
+import { assertRendered } from '../lib/rendered';
 
 const entry = await getEntry('about', 'about');
+assertRendered(entry!);
 const { Content } = await render(entry!);
 
 /* Ask the body, not the metadata. This used to matter because about.md was an English
