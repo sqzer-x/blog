@@ -2,22 +2,21 @@
 import Base from '../../../layouts/Base.astro';
 import { getCollection, render } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
-import { byHugoOrder, postUrl } from '../../../lib/order';
+import { postUrl } from '../../../lib/order';
 import { proseShape, excerpt, longDate } from '../../../lib/prose';
 import { hasHangul, langOf } from '../../../lib/hangul';
 import { assertRendered } from '../../../lib/rendered';
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const posts = (await getCollection('writing')).filter((p) => !p.data.draft).sort(byHugoOrder);
-  return posts.map((p, i) => ({
+  const posts = (await getCollection('writing')).filter((p) => !p.data.draft);
+  return posts.map((p) => ({
     // params must be the decoded form — Korean slugs are passed through verbatim.
     params: { year: p.data.date.slice(0, 4), slug: p.id },
-    // byHugoOrder is date DESC, so i-1 is the newer neighbour and i+1 the older one.
-    props: { post: p, newer: posts[i - 1] ?? null, older: posts[i + 1] ?? null },
+    props: { post: p },
   }));
 };
 
-const { post, newer, older } = Astro.props;
+const { post } = Astro.props;
 assertRendered(post);
 const { Content, headings } = await render(post);
 
@@ -256,29 +255,6 @@ const ld = {
     )}
 
     <div class="prose"><Content /></div>
-
-    <footer class="post__foot">
-      {(older || newer) && (
-        <nav class="adj" aria-label="Nearby posts">
-          {older && (
-            <a class="adj__item" href={postUrl(older)} rel="prev">
-              <span class="adj__label">Older</span>
-              {/* Inline wrapper for the same reason as the rail entry above: .adj__title is
-                  a grid item and so a block box filling its 832-928px column, while the
-                  title measures 341px. The span is what the rule is drawn on. */}
-              <span class="adj__title">{older.data.title}</span>
-            </a>
-          )}
-          {newer && (
-            <a class="adj__item" href={postUrl(newer)} rel="next">
-              <span class="adj__label">Newer</span>
-              <span class="adj__title">{newer.data.title}</span>
-            </a>
-          )}
-        </nav>
-      )}
-      <p class="post__back"><a href={`/writing/#${year}`}>All {year} posts</a></p>
-    </footer>
   </article>
   </div>
   {/* JSON.stringify does not escape `<`, so a deck or a title containing `</script>` closes
@@ -337,11 +313,12 @@ const ld = {
    * document is tall enough to push it there, so a final section shorter than 85% of the
    * viewport can never be marked at all: measured on how-to-win, scrolling to the very
    * bottom left "Conclusion" 400px down the screen, in full view, with the rail still
-   * pointing at the section above it. A second observer watches the article footer against
-   * the plain viewport; while the footer is on screen the reader is past the last heading
-   * by construction, so the last entry is the answer. It can only ever fire in the case it
-   * exists for — in a document whose last section is long, the footer appears well after
-   * that heading has crossed the line on its own.
+   * pointing at the section above it. A second observer watches an empty marker appended
+   * after everything else in <body>, against the plain viewport. It is on screen only when
+   * the page is scrolled as far as it goes, which is the one position a short final
+   * section can never be marked from, so there the last entry is the answer. Watching the
+   * end of the document rather than anything above it keeps this from firing while the
+   * last heading can still be scrolled up to the line.
    */
   const rail = document.querySelector('.toc-rail');
   if (rail) {
@@ -364,9 +341,11 @@ const ld = {
         // lede of section one, and that is what the rail should say.
         let next = targets[0].id;
         for (const el of targets) if (passed.has(el.id)) next = el.id;
-        // `passed.size` keeps this off an article short enough to show its own footer
-        // before a single heading has been read past.
-        if (atEnd && passed.size) next = targets[targets.length - 1].id;
+        // Only once the reader has moved: an article short enough to fit on screen whole
+        // shows its end marker on load, before anything has been read. A short one that
+        // scrolls a little can reach its end with no heading past the line, and the last
+        // entry is still the answer there, so scrollY counts as well as `passed`.
+        if (atEnd && (passed.size || scrollY > 0)) next = targets[targets.length - 1].id;
 
         /* The one place the rail's own scroll position is set outright rather than nudged.
            scrollIntoView({ block: 'nearest' }) is a no-op once the entry is already in
@@ -406,13 +385,19 @@ const ld = {
       );
       for (const el of targets) reading.observe(el);
 
-      const foot = document.querySelector('.post__foot');
-      if (foot) {
-        new IntersectionObserver((entries) => {
-          atEnd = entries[entries.length - 1].isIntersecting;
-          apply();
-        }).observe(foot);
-      }
+      // One pixel tall, pulled up over the pixel it adds, so it moves nothing and occupies
+      // the document's last pixel. Zero height does not work: measured, the fractional
+      // document height left a zero-area marker just past the viewport at full scroll,
+      // and the last entry was never marked on 8 of the 14 posts with a rail.
+      const end = document.createElement('div');
+      end.setAttribute('aria-hidden', 'true');
+      end.style.height = '1px';
+      end.style.marginBlockStart = '-1px';
+      document.body.append(end);
+      new IntersectionObserver((entries) => {
+        atEnd = entries[entries.length - 1].isIntersecting;
+        apply();
+      }).observe(end);
     }
   }
 </script>
@@ -574,8 +559,8 @@ const ld = {
      and the cost is bounded by arithmetic rather than by a literal: --page-left is a
      max() against the centred position, so the moment the gutter can seat the rail on its
      own the shift is exactly zero and never negative. The gutter is reserved whether or
-     not a rail is painted in it, so Older/Newer no longer steps the left edge between a
-     post with contents and one without. See the rail block below for
+     not a rail is painted in it, so moving from a post with contents to one without no
+     longer steps the left edge. See the rail block below for
      the geometry, the --w-content note in tokens.css and the --content-w note in
      src/pages/writing/index.astro for the other two ends of the same edge.
 
@@ -1060,10 +1045,8 @@ const ld = {
        --sp-50; flex-wrap: wrap }` — so any <nav> on the site is a wrapping flex row with
        a 24px gap unless it says otherwise. Measured before this line existed: the title
        and the list became two flex items and the gap stacked on top of the title's own
-       margin. .adj, the adjacent-post nav at the foot of this page, escapes the same rule
-       only because it declares `display: grid`. Stated rather than inherited, because an
-       element selector that reaches a second nav is the kind of thing that is invisible
-       until something moves 24px. */
+       margin. Stated rather than inherited, because an element selector that reaches a
+       second nav is the kind of thing that is invisible until something moves 24px. */
     display: block;
   }
 
@@ -1286,7 +1269,7 @@ const ld = {
 
        Keyed on the ARTICLE, not on the rail, and that is a reversal worth stating. It
        used to read `main:has(.toc-rail)`, so the gutter was reserved only where a rail
-       was actually painted, and the price was a step: Older/Newer between a post with
+       was actually painted, and the price was a step: moving between a post with
        contents and one without moved the left edge by up to 72px inside the band (79.5
        with a classic scrollbar). Under the premise this page is now built on — every post
        gets headings — the two forms converge, because every article ends up with a rail;
@@ -1889,98 +1872,12 @@ const ld = {
      word, so it gets the space a word would have had and nothing else. */
   .prose .data-footnote-backref { margin-inline-start: 0.25em; }
 
-  /* ══ Footer ══════════════════════════════════════════════════════════════
-     The Gazette closes an article with a share block and a related-articles carousel,
-     neither of which a 30-post archive can fill honestly. Two neighbours in
-     byHugoOrder and a way back into the year you came from is the whole of it. Here
-     the rail earns its keep: it holds the direction label, so both titles stay on the
-     page's single left edge. */
-  .post__foot {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: subgrid;
-    margin-block-start: var(--sp-120);
-    border-block-start: 1px solid var(--page-hairline);
-    padding-block-start: var(--sp-48);
-  }
-  .adj { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; }
-  .adj__item {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: subgrid;
-    align-items: baseline;
-    padding-block: var(--sp-40);
-    text-decoration: none;
-    font-weight: 400;
-    border-block-end: 1px solid var(--page-hairline);
-  }
-  .adj__item:last-child { border-block-end: 0; }
-  .adj__label {
-    grid-column: 1;
-    justify-self: end;
-    font-family: var(--font-body);
-    font-size: var(--fs-small);
-    font-weight: 700;
-    letter-spacing: 0.105rem;
-    text-transform: uppercase;
-    color: var(--ppc-text);
-  }
-  .adj__title {
-    grid-column: 2;
-    font-family: var(--font-display);
-    font-size: var(--fs-h5);
-    line-height: var(--lh-medium);
-    color: var(--page-fg);
-    word-break: keep-all;
-    text-wrap: balance;
-  }
-  /* The card is the trigger, as before -- the whole .adj__item is the link, and the hit
-     area is unchanged. The rule is drawn on the inline span inside .adj__title so it stops
-     at the text instead of running the width of the column.
-     No --wipe-y: the padding-box bottom of a 20px line is 3px under the baseline, which is
-     exactly where `text-underline-offset: 0.14em` had it. The rule does not move; it gains
-     the motion and the crimson. :focus-visible is on the <a>, which is the card, so the
-     keyboard sees the same mark the pointer does.
-     Hit area, measured on every post from 320 to 1700: the card is 1024 x 61 at 1700 and
-     328 wide at 375, where the title sits under the label and the card is 79-105px tall
-     depending on how the title wraps. All four corners and the centre hit-test to the link. */
-  .adj__item:focus-visible .adj__title { color: var(--crimson); }
-  @media (hover: hover) {
-    .adj__item:hover .adj__title { color: var(--crimson); }
-  }
-
-  /* Forced colours drop background-image, so the wipe is not painted there and the colour
-     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
-     this rule replaced is what that mode can still draw, so it comes back here, with the
-     offset it carried before. */
-  @media (forced-colors: active) {
-    .adj__item:focus-visible .adj__title { text-decoration: underline; text-underline-offset: 0.14em; }
-  }
-  @media (forced-colors: active) and (hover: hover) {
-    .adj__item:hover .adj__title { text-decoration: underline; text-underline-offset: 0.14em; }
-  }
-  .post__back {
-    grid-column: 2;
-    margin-block-start: var(--sp-48);
-    font-size: var(--fs-small);
-    letter-spacing: 0.02em;
-  }
-
   /* ══ Rail collapse ═══════════════════════════════════════════════════════
      The same 36rem breakpoint the index uses, so both pages fold at one width. */
   @container post (max-width: 36rem) {
-    .post,
-    .post__foot,
-    .adj,
-    .adj__item { grid-template-columns: minmax(0, 1fr); }
-    .post > *,
-    .post__back { grid-column: 1; }
+    .post { grid-template-columns: minmax(0, 1fr); }
+    .post > * { grid-column: 1; }
     .post__head { display: flex; flex-direction: column; align-items: flex-start; }
     .post__kicker { order: -2; }
-    .adj__label { justify-self: start; margin-block-end: 0.25rem; }
-    /* Back onto the one track, under the label. Left at column 2, the title lands in an
-       implicit max-content column, the 1fr track shrinks to nothing and the label is
-       painted over the start of the title. */
-    .adj__title { grid-column: 1; }
   }
 </style>

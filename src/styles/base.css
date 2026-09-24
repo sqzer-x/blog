@@ -96,8 +96,7 @@ a { color: var(--crimson); font-weight: inherit; text-decoration: none; }
    users get the global :focus-visible ring rather than this, which is the stronger signal
    of the two. */
 @media (hover: hover) {
-  :is(.prose, .about) a:hover,
-  .post__back a:hover { color: var(--crimson-lift); }
+  :is(.prose, .about) a:hover { color: var(--crimson-lift); }
 }
 
 /* The rule that used to sit here held linked headings at their own 500 against the
@@ -251,9 +250,8 @@ main { padding-block: var(--sp-64) var(--sp-120); }
 /* Size and case come back from .site-foot, not from the global `nav a` two rules up.
    That selector is unscoped — it reaches every <nav> on the site — so these links were
    arriving at --fs-nav (19.2px) in small-caps beside a 14px copyright line. Overridden
-   here rather than by scoping `nav a` to the header, because .adj and .toc-rail both
-   read its `text-decoration: none`, and narrowing it would underline every adjacent-post
-   link at rest. small-caps is dropped with the size: at one shared font-size its
+   here rather than by scoping `nav a` to the header, because .toc-rail reads its
+   `text-decoration: none`, and narrowing it would underline every rail link at rest. small-caps is dropped with the size: at one shared font-size its
    lowercase would still draw shorter than the line it is meant to match. */
 .site-foot__social a {
   color: inherit;
@@ -311,8 +309,8 @@ nav { display: flex; gap: var(--sp-50); flex-wrap: wrap; }
    an em it tracks the type instead of drifting against it: 15.1px at 1440, 12.9px at 375,
    where the site gap's flat 24px was 1.27em of this type at 1440 and 1.49em at 375 —
    loosest exactly where the row is tightest. Scoped to this header rather than edited into
-   the rule above, because `nav` is an element selector and the article page has two more
-   navs: .toc-rail escapes it with display:block, and .adj is a subgrid that reads this gap. */
+   the rule above, because `nav` is an element selector and the article page has one more
+   nav, .toc-rail, which escapes it with display:block. */
 /* The reference's own spacing, .8em, but resolved against the size it is .8em OF.
    Written as `0.8em` here it resolved against <nav>'s inherited font-size, which is body's
    16px because --fs-nav is set on `nav a` and not on `nav` — so the gap sat at 12.8px while
@@ -401,17 +399,17 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 
    The header draws its rule with an absolutely positioned ::before at `bottom: 0`. That
    is right for a nav item and wrong for most of these, because an absolute bar is one
-   rectangle spanning the element's whole padding box. Five of the seven wrap in the corpus
-   as it stands -- entry titles on the Writing index (2 lines at 375), adjacent-post titles
-   (2 at 375), rail entries (2 at 1440, 4 once hover lifts the clamp), inline contents
+   rectangle spanning the element's whole padding box. Four of the six wrap in the corpus
+   as it stands -- entry titles on the Writing index (2 lines at 375), rail entries (2 at
+   1440, 4 once hover lifts the clamp), inline contents
    headings (3 at 320), project names on /code/ (2 lines from 360 down: one name at 360,
    two at 320, three at 280) -- and on a wrapped link that rectangle lands under the last
    line only at the width of the widest, reading as a bottom border rather than an
    underline. The project names are the narrow escape: at 375 the longest still fits, by
    6.45px -- 321.55px in a 328px column -- and it is the 360px column, 313px wide, that
-   takes it to two lines. Two are worse than wrapping: .toc-rail__link and .adj__title
-   are block boxes that fill their column, so the bar would be 265px and 832px wide under
-   87px and 341px of text even on a single line.
+   takes it to two lines. One is worse than wrapping: .toc-rail__link is a block box that
+   fills its column, so the bar would be 265px wide under 87px of text even on a single
+   line.
 
    A background gradient sized 0% -> 100% fails the same way by default, because the
    background positioning area of an inline box is the union of its fragments. What fixes
