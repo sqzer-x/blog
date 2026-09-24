@@ -112,11 +112,23 @@ export default defineConfig({
       mdastPlugins: [satteriKorean(), satteriFigure()],
       hastPlugins: [satteriProse({ publicDir: 'public' }), satteriDiagram()],
       /*
-       * Parser flags. Astro hands Sätteri only `{ gfm, smartPunctuation }` and every other
-       * entry in `Features` defaults off, so what is listed here is the whole of the
-       * difference from stock — and each line is a defect that was measurable in dist/.
+       * Parser flags. Astro hands Sätteri only `{ gfm, smartPunctuation }`. Every other
+       * entry in `Features` defaults off except `frontmatter`, which Sätteri turns on unless
+       * told otherwise (`features.frontmatter ?? true` in satteri/dist/compile.js). What is
+       * listed here is the whole of the difference from stock, and each line is a defect
+       * that was measurable in dist/.
        */
       features: {
+        /*
+         * Astro has already split the front matter off: the loader hands over the body,
+         * trimmed (astro/dist/vite-plugin-markdown/content-entry-type.js). Left on, Sätteri
+         * reads that body's first line as a second front-matter fence, so a post opening
+         * with a `---` rule loses everything up to the next `---`, `...` or `+++` pair. It
+         * drops without a log, and the page still has a body for the render guard to find.
+         * Nothing reads what Sätteri would parse there: Astro's metadata.frontmatter is the
+         * loader's own copy.
+         */
+        frontmatter: false,
         /*
          * Smart punctuation, minus the dash rule. Quotes and ellipses are worth having in
          * 70-odd lines of prose; the dash rule is not, because it does not know what a CLI
