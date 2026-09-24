@@ -10,7 +10,6 @@
 /** Excluded from length and shape measurements: code fences, images, tables, link URLs. */
 function plain(md: string): string {
   return md
-    .replace(/^---[\s\S]*?^---/m, '')
     .replace(/```[\s\S]*?```/g, '')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/^\s*\|.*$/gm, '')
