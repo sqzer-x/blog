@@ -1941,9 +1941,9 @@ const ld = {
      exactly where `text-underline-offset: 0.14em` had it. The rule does not move; it gains
      the motion and the crimson. :focus-visible is on the <a>, which is the card, so the
      keyboard sees the same mark the pointer does.
-     Hit area re-measured after the wrapper went in: the card is still 1024 x 61 at 1700
-     and 328 x 82.66 on a wrapped title at 375, and all four corners and the centre still
-     hit-test to the link. */
+     Hit area, measured on every post from 320 to 1700: the card is 1024 x 61 at 1700 and
+     328 wide at 375, where the title sits under the label and the card is 79-105px tall
+     depending on how the title wraps. All four corners and the centre hit-test to the link. */
   .adj__item:focus-visible .adj__title { color: var(--crimson); }
   @media (hover: hover) {
     .adj__item:hover .adj__title { color: var(--crimson); }
@@ -1978,5 +1978,9 @@ const ld = {
     .post__head { display: flex; flex-direction: column; align-items: flex-start; }
     .post__kicker { order: -2; }
     .adj__label { justify-self: start; margin-block-end: 0.25rem; }
+    /* Back onto the one track, under the label. Left at column 2, the title lands in an
+       implicit max-content column, the 1fr track shrinks to nothing and the label is
+       painted over the start of the title. */
+    .adj__title { grid-column: 1; }
   }
 </style>
