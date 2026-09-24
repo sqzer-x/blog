@@ -1,11 +1,29 @@
 // @ts-check
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync } from 'node:fs';
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { satteri } from '@astrojs/markdown-satteri';
 import satteriFigure from './src/lib/satteri-figure.mjs';
+import satteriGuard from './src/lib/satteri-guard.mjs';
 import satteriProse from './src/lib/satteri-prose.mjs';
 import satteriDiagram from './src/lib/satteri-diagram.mjs';
 import satteriKorean from './src/lib/satteri-korean.mjs';
+
+/**
+ * sha256 of the <style> inside each baked diagram, for the Content-Security-Policy below.
+ *
+ * Astro hashes the scripts and styles it emits itself, and once style-src-elem carries a
+ * hash, browsers ignore 'unsafe-inline' for <style> elements. The diagrams' own <style>
+ * arrives inside Markdown HTML that Astro never looks at, so without these three it would
+ * be blocked and every diagram would lose its palette. The files hold the text exactly as
+ * it is inlined (no entities, satteriDiagram inserts it verbatim), so it is hashed as read.
+ * prebuild bakes any new diagram before this file is loaded.
+ */
+const DIAGRAM_STYLE_HASHES = readdirSync('src/lib/diagrams')
+  .filter((f) => f.endsWith('.svg'))
+  .flatMap((f) => [...readFileSync(`src/lib/diagrams/${f}`, 'utf8').matchAll(/<style>([\s\S]*?)<\/style>/g)])
+  .map(([, css]) => `sha256-${createHash('sha256').update(css).digest('base64')}`);
 
 /**
  * Grammars preloaded into the Shiki highlighter: the fence languages the corpus uses.
@@ -98,19 +116,49 @@ export default defineConfig({
   // Every canonical URL ends in a trailing slash; the directory format emits dist/<path>/index.html.
   trailingSlash: 'always',
   build: { format: 'directory' },
+  /*
+   * Content-Security-Policy, emitted by Astro as a <meta> in every page's <head>, since
+   * GitHub Pages cannot send response headers. Astro computes the hashes of the scripts it
+   * inlines, so editing the article's two scripts needs no change here.
+   *
+   * Nothing on this site loads from another origin, so everything is 'self' or 'none'.
+   * Shiki colours every token with a style="" attribute, so 'unsafe-inline' is granted to
+   * style-src-attr and nowhere else; a style attribute cannot run script. That grant is
+   * the answer to the "Shiki ... not compatible with Content Security Policy" warning
+   * Astro prints on every build. What a <meta> cannot carry: frame-ancestors, report-uri
+   * and sandbox are ignored there.
+   */
+  security: {
+    csp: {
+      directives: [
+        "default-src 'none'",
+        "img-src 'self'",
+        "font-src 'self'",
+        "base-uri 'none'",
+        "form-action 'none'",
+      ],
+      styleDirective: {
+        resources: ["'self'", { resource: "'unsafe-inline'", kind: 'attribute' }],
+        hashes: DIAGRAM_STYLE_HASHES,
+      },
+    },
+  },
   markdown: {
     // Sätteri is the default Markdown processor in Astro 7, and `markdown.rehypePlugins`
     // now throws unless @astrojs/markdown-remark is installed alongside it. Plugins go
     // here instead, as Sätteri visitor objects.
     //   mdast: satteriKorean  — CommonMark inline rules that misfire on Korean prose
     //   mdast: satteriFigure  — <figure>/<figcaption> out of the corpus's own convention
+    //   hast:  satteriGuard   — refuses raw HTML, heading attributes, link schemes and
+    //                           image hosts a post must not carry; the build fails
     //   hast:  satteriProse   — heading demotion, intrinsic image size, table scrollers
     //   hast:  satteriDiagram — a mermaid fence -> the SVG baked from it before the build
     // Ordering matters: hastPlugins run after highlighting and BEFORE heading-id
-    // collection, so `headings` from render() reports the demoted depths.
+    // collection, so `headings` from render() reports the demoted depths. satteriGuard
+    // goes first, before satteriDiagram adds the one raw node the site trusts.
     processor: satteri({
       mdastPlugins: [satteriKorean(), satteriFigure()],
-      hastPlugins: [satteriProse({ publicDir: 'public' }), satteriDiagram()],
+      hastPlugins: [satteriGuard(), satteriProse({ publicDir: 'public' }), satteriDiagram()],
       /*
        * Parser flags. Astro hands Sätteri only `{ gfm, smartPunctuation }`. Every other
        * entry in `Features` defaults off except `frontmatter`, which Sätteri turns on unless
@@ -158,8 +206,9 @@ export default defineConfig({
          *   directive     `:::note` blocks need styling per directive to mean anything.
          *   wikilinks     no wiki.
          *   definitionList  0 in the corpus; a table or a list carries the same content.
-         *   rawHtml       leaving HTML as an opaque `raw` node is the safer default, and
-         *                 it is the switch that also governs sanitisation.
+         *   rawHtml       off, raw HTML stays an opaque `raw` node; on, it is re-parsed into
+         *                 elements. Either way it is emitted verbatim: this flag sanitises
+         *                 nothing. What limits raw HTML is satteriGuard.
          */
       },
     }),
