@@ -114,9 +114,14 @@ function outsideCode(md) {
   }).join('\n\n');
 }
 
+/* Two spellings, tried in this order at each position. `(</uploads/a b.png>)` is how
+   CommonMark writes a destination with a space in it (screenshots are named that way by
+   default), and it runs to the `>`; the bare form ends at the first space or delimiter. */
+const UPLOAD_REF = /(?<=(?:^|[\s(])<)\/uploads\/([^<>\n]+)(?=>)|(?<=^|[\s(<"'=])\/uploads\/([^\s"'()<>\]]+)/gm;
+
 function checkUploads(rel, raw) {
-  for (const m of outsideCode(raw).matchAll(/(?<=^|[\s(<"'=])\/uploads\/([^\s"'()<>\]]+)/gm)) {
-    const key = m[1].split(/[?#]/)[0].replace(/[.,]+$/, '');
+  for (const m of outsideCode(raw).matchAll(UPLOAD_REF)) {
+    const key = (m[1] ?? m[2]).split(/[?#]/)[0].replace(/[.,]+$/, '');
     let file;
     try { file = decodeURI(key); } catch { err(rel, `image path is not valid percent-encoding: /uploads/${key}`); continue; }
     if (!existsExact(path.join(SRC, 'public', 'uploads'), file))
