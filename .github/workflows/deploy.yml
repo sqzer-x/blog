@@ -26,6 +26,12 @@ jobs:
           # Must go through npm run build so that prebuild — the content gate — runs.
           # Calling astro build directly would skip it.
           build-cmd: npm run build
+          # The action caches node_modules/.astro by default, and that store holds each
+          # post's rendered HTML keyed only by the .md file's digest. Restored, it ships the
+          # old HTML after a change to a Markdown plugin, a diagram or an image, and it keeps
+          # a failed render failed without logging it again. A cold content build costs
+          # under a second.
+          cache: false
         env:
           # Raise to `all` once decks and tags are backfilled, and do not lower it again.
           CONTENT_STRICT: urls,schema
