@@ -13,7 +13,7 @@
  * useMaxWidth note in diagrams.mjs). What the tabindex buys is a keyboard reader landing on
  * the figure - the drawing is vector, so a reader who lands on it can zoom it losslessly.
  */
-import { diagramFile, diagramKey, normalizeDiagram, readDiagram } from './diagrams.mjs';
+import { diagramCopy, diagramFile, diagramKey, normalizeDiagram, readDiagram } from './diagrams.mjs';
 
 /**
  * A build with a fence that was never rendered is a broken build, not a warning: the
@@ -89,9 +89,7 @@ export default function satteriDiagram() {
         const seen = ctx.data.diagramSeen;
         const repeat = seen.get(key) ?? 0;
         seen.set(key, repeat + 1);
-        // Every id inside the file — the root, and the arrowhead markers that reference it —
-        // starts from this one string, so one replacement keeps the SVG self-consistent.
-        const markup = repeat === 0 ? svg : svg.replaceAll(`mmd-${key}`, `mmd-${key}-${repeat}`);
+        const markup = diagramCopy(svg, key, repeat);
 
         const kind = /aria-roledescription="([^"]+)"/.exec(svg)?.[1] ?? '';
         const label = LABELS[kind] ?? 'Diagram';

@@ -228,6 +228,15 @@ export function diagramKey(source) {
 export const diagramFile = (key) => `${DIAGRAM_DIR}/${key}.svg`;
 
 /**
+ * The markup for the nth appearance of one diagram on a page (n from 0). Every id in a baked
+ * file, the root's and the arrowhead markers', and every selector in its <style>, starts
+ * from `mmd-<key>`, so one replacement keeps a second copy from sharing ids with the first.
+ * It rewrites the <style> too, which is why astro.config.mjs hashes each copy for the
+ * Content-Security-Policy through this same function rather than reading the file alone.
+ */
+export const diagramCopy = (svg, key, n) => (n === 0 ? svg : svg.replaceAll(`mmd-${key}`, `mmd-${key}-${n}`));
+
+/**
  * The baked SVG, or null when this fence has not been rendered yet. Synchronous by design:
  * the plugin that calls it is a cache lookup, with no browser and no lifecycle to manage.
  */

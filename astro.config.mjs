@@ -9,21 +9,44 @@ import satteriGuard from './src/lib/satteri-guard.mjs';
 import satteriProse from './src/lib/satteri-prose.mjs';
 import satteriDiagram from './src/lib/satteri-diagram.mjs';
 import satteriKorean from './src/lib/satteri-korean.mjs';
+import { diagramCopy, diagramKey, findMermaidFences, readDiagram } from './src/lib/diagrams.mjs';
 
 /**
- * sha256 of the <style> inside each baked diagram, for the Content-Security-Policy below.
+ * sha256 of the <style> inside every diagram copy a page will carry, for the
+ * Content-Security-Policy below.
  *
- * Astro hashes the scripts and styles it emits itself, and once style-src-elem carries a
- * hash, browsers ignore 'unsafe-inline' for <style> elements. The diagrams' own <style>
- * arrives inside Markdown HTML that Astro never looks at, so without these three it would
- * be blocked and every diagram would lose its palette. The files hold the text exactly as
- * it is inlined (no entities, satteriDiagram inserts it verbatim), so it is hashed as read.
- * prebuild bakes any new diagram before this file is loaded.
+ * Astro hashes the scripts and styles it emits itself, and once style-src carries a hash,
+ * browsers ignore 'unsafe-inline' for <style> elements. The diagrams' own <style> arrives
+ * inside Markdown HTML that Astro never looks at, so without these it would be blocked and
+ * the diagram would lose its palette. A diagram drawn twice on one page is renamed for the
+ * second copy, <style> included, so each copy is hashed as satteriDiagram will emit it:
+ * through diagramCopy(), up to the most copies of that diagram any one document has. The
+ * text is inlined verbatim with no entities, so it is hashed as it stands. prebuild bakes
+ * any new diagram before this file is loaded, and check-dist fails the build if a page
+ * still carries a <style> or <script> its policy does not list.
  */
-const DIAGRAM_STYLE_HASHES = readdirSync('src/lib/diagrams')
-  .filter((f) => f.endsWith('.svg'))
-  .flatMap((f) => [...readFileSync(`src/lib/diagrams/${f}`, 'utf8').matchAll(/<style>([\s\S]*?)<\/style>/g)])
-  .map(([, css]) => `sha256-${createHash('sha256').update(css).digest('base64')}`);
+function diagramCopies(dir, copies = new Map()) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const file = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) diagramCopies(file, copies);
+    else if (entry.name.endsWith('.md')) {
+      const onPage = new Map();
+      for (const { source } of findMermaidFences(readFileSync(file, 'utf8'))) {
+        const key = diagramKey(source);
+        onPage.set(key, (onPage.get(key) ?? 0) + 1);
+      }
+      for (const [key, n] of onPage) copies.set(key, Math.max(copies.get(key) ?? 0, n));
+    }
+  }
+  return copies;
+}
+const DIAGRAM_STYLE_HASHES = [...diagramCopies('content')].flatMap(([key, n]) => {
+  const svg = readDiagram(key);
+  if (!svg) return [];
+  return Array.from({ length: n }, (_, i) => diagramCopy(svg, key, i))
+    .flatMap((markup) => [...markup.matchAll(/<style>([\s\S]*?)<\/style>/g)])
+    .map(([, css]) => `sha256-${createHash('sha256').update(css).digest('base64')}`);
+});
 
 /**
  * Grammars preloaded into the Shiki highlighter: the fence languages the corpus uses.
@@ -127,6 +150,13 @@ export default defineConfig({
    * the answer to the "Shiki ... not compatible with Content Security Policy" warning
    * Astro prints on every build. What a <meta> cannot carry: frame-ancestors, report-uri
    * and sandbox are ignored there.
+   *
+   * Two things in the emitted policy are Astro's and not the site's. script-src always lists
+   * five hashes for Astro's client-directive runtimes (idle, load, media, only, visible;
+   * astro/dist/runtime/client/*.prebuilt.js), added even on a site with no islands, and
+   * style-src lists sha256 of the empty string. Neither matches anything a page carries.
+   * Astro writes the <meta> where it renders the head, after the preload and icon links and
+   * before every stylesheet and script; check-dist holds it to that.
    */
   security: {
     csp: {
