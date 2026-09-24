@@ -3,18 +3,28 @@
  *
  * Since pushing is the only way to publish, this is the only safety net the site has.
  *
- * Strictness is staged through CONTENT_STRICT:
- *   urls,schema  right after the migration, while decks and tags are still empty
- *   all          once the backfill is done. Raise it once and do not lower it again.
+ * Strictness is staged through CONTENT_STRICT, a comma-separated list:
+ *   deck, tags   an empty deck, or empty tags, becomes an error instead of a warning
+ *   all          both, once the backfill is done. Raise it once and do not lower it again.
+ *   urls,schema  what CI passes today. URL, schema and missing-image checks are errors
+ *                whatever the setting, so these two names switch nothing on; they are
+ *                accepted so that value stays valid.
+ * Any other name stops the gate: a typo must not quietly leave a check switched off.
  */
 import { readdir, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { load as parseYaml } from 'js-yaml';
 
 const SRC = process.env.CONTENT_DIR ?? '.';
-const STRICT = new Set((process.env.CONTENT_STRICT ?? 'urls,schema').split(',').map((s) => s.trim()));
+const STRICT = new Set((process.env.CONTENT_STRICT ?? 'urls,schema').split(',').map((s) => s.trim()).filter(Boolean));
 const on = (k) => STRICT.has('all') || STRICT.has(k);
+const KEYS = new Set(['all', 'deck', 'tags', 'urls', 'schema']);
+const unknownKeys = [...STRICT].filter((k) => !KEYS.has(k));
+if (unknownKeys.length) {
+  console.error(`check-content: unknown CONTENT_STRICT name(s): ${unknownKeys.join(', ')} (known: ${[...KEYS].join(', ')})`);
+  process.exit(1);
+}
 
 const errors = [], warns = [];
 const err = (f, m) => errors.push(`${f}: ${m}`);
@@ -37,6 +47,82 @@ const read = async (p) => (await readFile(p, 'utf8')).replace(/^\uFEFF/, '');
 const asciiLower = (s) => s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
 /** The year segment already keeps slugs away from sub-view names; this is a second line. */
 const RESERVED = new Set(['essay', 'research', 'video', 'slides', 'podcast', 'index', 'page', 'tags', 'feed', 'about']);
+
+/* ── Images ──────────────────────────────────────────────────────────────────
+   Every /uploads/ path a document references must exist in public/uploads, spelled
+   exactly as on disk. Pages serves a case-sensitive file system, while existsSync on
+   Windows says yes to Image.png for image.png, so each path segment is looked up in its
+   directory listing instead.
+
+   Only references that start a URL count: after `(`, a quote, `<`, `=` or whitespace,
+   never after a host name, and never inside fenced code or a code span. A tutorial that
+   quotes `curl http://host/uploads/shell.php` is not naming an image this site serves.
+   The path is percent-decoded first, as the renderer does. A malformed escape such as
+   `100%.png` makes the renderer throw and the post ship empty, so it is an error here. */
+const listings = new Map();
+function listing(dir) {
+  if (!listings.has(dir)) {
+    let names = null;
+    try { names = new Set(readdirSync(dir)); } catch { /* missing, or not a directory */ }
+    listings.set(dir, names);
+  }
+  return listings.get(dir);
+}
+function existsExact(root, rel) {
+  let dir = root;
+  for (const part of rel.split('/')) {
+    if (!part || part === '.' || part === '..' || !listing(dir)?.has(part)) return false;
+    dir = path.join(dir, part);
+  }
+  return true;
+}
+
+/** The text outside fenced code and code spans. One pass over the input, no backtracking. */
+function outsideCode(md) {
+  const kept = [];
+  let fence = null;
+  for (const line of md.split('\n')) {
+    const run = /^[\s>]*(`{3,}|~{3,})/.exec(line);
+    const rest = run ? line.slice(run.index + run[0].length) : '';
+    if (fence) {
+      if (run && run[1][0] === fence[0] && run[1].length >= fence.length && !rest.trim()) fence = null;
+      continue;
+    }
+    // A backtick fence cannot carry a backtick in its info string; that line is prose.
+    if (run && !(run[1][0] === '`' && rest.includes('`'))) { fence = run[1]; continue; }
+    kept.push(line);
+  }
+  // Code spans, paired within one paragraph: an opening run of n backticks closes at the
+  // next run of exactly n. Pairing across paragraphs would let two stray backticks hide
+  // everything between them.
+  return kept.join('\n').split(/\n[ \t]*\n/).map((block) => {
+    const runs = [...block.matchAll(/`+/g)];
+    const next = new Array(runs.length).fill(-1);
+    const last = new Map();
+    for (let i = runs.length - 1; i >= 0; i--) {
+      next[i] = last.get(runs[i][0].length) ?? -1;
+      last.set(runs[i][0].length, i);
+    }
+    let out = '', from = 0;
+    for (let i = 0; i < runs.length; i++) {
+      if (next[i] < 0) continue;
+      out += block.slice(from, runs[i].index);
+      from = runs[next[i]].index + runs[next[i]][0].length;
+      i = next[i];
+    }
+    return out + block.slice(from);
+  }).join('\n\n');
+}
+
+function checkUploads(rel, raw) {
+  for (const m of outsideCode(raw).matchAll(/(?<=^|[\s(<"'=])\/uploads\/([^\s"'()<>\]]+)/gm)) {
+    const key = m[1].split(/[?#]/)[0].replace(/[.,]+$/, '');
+    let file;
+    try { file = decodeURI(key); } catch { err(rel, `image path is not valid percent-encoding: /uploads/${key}`); continue; }
+    if (!existsExact(path.join(SRC, 'public', 'uploads'), file))
+      err(rel, `referenced image is missing from public/uploads, or differs in case: /uploads/${key}`);
+  }
+}
 
 const files = [];
 {
@@ -135,11 +221,7 @@ for (const abs of files) {
   const tagsBlock = /^tags:[ \t]*\r?\n[ \t]*-[ \t]*\S/m.test(fm);
   if (!tagsBlock && !(tagsInline && /[^\s[\],]/.test(tagsInline[1]))) req('tags', rel, 'tags is empty');
 
-  // Every image the prose references must exist.
-  for (const im of raw.matchAll(/\/uploads\/([^\s"')\]]+)/g)) {
-    const key = im[1].replace(/[.,)]+$/, '');
-    if (!existsSync(path.join(SRC, 'public', 'uploads', key))) req('uploads', rel, `referenced image is missing: /uploads/${key}`);
-  }
+  checkUploads(rel, raw);
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -268,6 +350,7 @@ for (const abs of codeFiles) {
   /* The description IS the body on this collection, so an empty file is an entry that
      renders as a bare link with nothing under it. */
   if (!body.trim()) err(rel, 'description is empty — the body of the file is the sentence the page prints');
+  checkUploads(rel, raw);
 
   /* A duplicate `order` is a hard error rather than a warning. The page does break the
      tie — by name, then by id, so the build is deterministic either way — but on a list
@@ -281,6 +364,12 @@ for (const abs of codeFiles) {
     if (orders.has(key)) err(rel, `order ${key} is already taken by ${orders.get(key)}`);
     else orders.set(key, rel);
   }
+}
+
+// about.md is the home page, and its portrait lives in /uploads/ like any post image.
+{
+  const abs = path.join(SRC, 'content', 'about.md');
+  if (existsSync(abs)) checkUploads('content/about.md', await read(abs));
 }
 
 console.log(`check-content: ${files.length} documents, ${seen.size} URLs, ${codeFiles.length} code entries, STRICT=${[...STRICT].join(',')}`);
