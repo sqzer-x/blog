@@ -26,10 +26,24 @@ const LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
 
 /* The allowed tags, removed in one pass. Whatever is left must not open markup the way the
    HTML tokenizer defines it: `<` followed by a letter, `/`, `!` or `?`. A `<` before a
-   space or a digit is text to a browser, so "a < b" and "<3" stay legal. */
-const ALLOWED_TAG =
-  /<\/?(?:kbd|mark|sub|sup|ins)\s*>|<\/abbr\s*>|<abbr\s+title\s*=\s*(?:"[^"<>]*"|'[^'<>]*')\s*>|<br\s*\/?>/gi;
+   space or a digit is text to a browser, so "a < b" and "<3" stay legal.
+   Whitespace is the tokenizer's set, not JavaScript's \s, which would also take a
+   no-break space the browser reads as part of a name. A quoted title may hold `>`, which
+   is text inside quotes to both CommonMark and the browser, but not `<`: that keeps a match
+   from reaching into another tag, so every `<` is an allowed tag or is left to be caught. */
+const WS = '[\\t\\n\\f\\r ]';
+const ALLOWED_TAG = new RegExp(
+  `<\\/?(?:kbd|mark|sub|sup|ins)${WS}*>|<\\/abbr${WS}*>` +
+    `|<abbr${WS}+title${WS}*=${WS}*(?:"[^"<]*"|'[^'<]*')${WS}*>|<br${WS}*\\/?>`,
+  'gi',
+);
 const OPENS_MARKUP = /<[A-Za-z!?/]/;
+
+/* Sätteri percent-encodes [ and ] anywhere in a link destination, so http://[::1]:8080/
+   arrives as http://%5B::1%5D:8080/, which neither the URL parser nor a browser accepts.
+   The brackets are put back in the authority of an http(s) or protocol-relative link only,
+   and that repaired address is what ships. */
+const IPV6_HOST = /^((?:https?:)?\/\/(?:[^/?#@[\]]*@)?)%5B([0-9A-Fa-f:.]+)%5D(?=[:/?#]|$)/i;
 
 const clip = (s) => (s.length > 80 ? `${s.slice(0, 77)}...` : s);
 const resolve = (value) => {
@@ -39,7 +53,9 @@ const resolve = (value) => {
 const commentError = (text) =>
   new Error(
     `satteri-guard: HTML comment ${JSON.stringify(clip(text))} would be published in the ` +
-      'page source. Delete it; the repository is public as well.',
+      'page source, and the repository is public as well. Delete it. If it was separating ' +
+      'two lists, start the second with a different marker instead ("-" then "*", or "1." ' +
+      'then "1)"): deleting the comment alone merges them into one list.',
   );
 
 export default function satteriGuard() {
@@ -52,8 +68,10 @@ export default function satteriGuard() {
       if (OPENS_MARKUP.test(html.replace(ALLOWED_TAG, '')))
         throw new Error(
           `satteri-guard: raw HTML ${JSON.stringify(clip(html))} is not allowed. ` +
-            'Put markup you are quoting in backticks or a code fence; only <kbd>, <mark>, ' +
-            '<abbr title>, <sub>, <sup>, <ins> and <br> may be written as HTML.',
+            'A literal < in prose takes a backslash (\\<Inception>, List\\<String>). Code, ' +
+            'commands, placeholders and quoted markup go in backticks or a code fence, and a ' +
+            'key goes in <kbd>. Only <kbd>, <mark>, <abbr title>, <sub>, <sup>, <ins> and ' +
+            '<br> may be written as HTML.',
         );
     },
     comment(node) {
@@ -67,21 +85,31 @@ export default function satteriGuard() {
           if (extra.length)
             throw new Error(
               `satteri-guard: heading ${JSON.stringify(clip(ctx.textContent(node)))} carries ` +
-                `${extra.join(', ')}. {…} after a heading may only set #id and .class.`,
+                `${extra.join(', ')}. A {…} at the end of a heading is read as attributes, and ` +
+                'may only set #id and .class. If the braces are text, escape the closing one ' +
+                '({a,b,c\\}), put them in backticks, or end the line with " ##". Escaping ' +
+                'only the opening one (\\{) does not work.',
             );
         },
       },
       {
         filter: ['a'],
-        visit(node) {
-          const href = node.properties?.href;
-          if (href == null) return;
-          const url = resolve(href);
-          if (!url || !LINK_PROTOCOLS.has(url.protocol))
+        visit(node, ctx) {
+          if (node.properties?.href == null) return;
+          const href = String(node.properties.href);
+          const repaired = href.replace(IPV6_HOST, '$1[$2]');
+          const url = resolve(repaired);
+          if (!url)
             throw new Error(
-              `satteri-guard: link to ${JSON.stringify(clip(String(href)))} is not allowed. ` +
+              `satteri-guard: link to ${JSON.stringify(clip(href))} could not be parsed as a URL. ` +
+                'Check the host and the port.',
+            );
+          if (!LINK_PROTOCOLS.has(url.protocol))
+            throw new Error(
+              `satteri-guard: link to ${JSON.stringify(clip(href))} is not allowed. ` +
                 'Links may be http, https, mailto or a path on this site.',
             );
+          if (repaired !== href) ctx.setProperty(node, 'href', repaired);
         },
       },
       {
