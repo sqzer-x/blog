@@ -133,23 +133,25 @@
    Only the first number moved when KoBody went 102.9% -> 94.29%. The two overrides are
    ratios in which the KoBody factor appears in both numerator and denominator and
    cancels exactly - they reduce to 1950/1770 and 494/1770 - so 110.17% and 27.91% hold
-   for any KoBody value. Do not recompute them. */
+   for any KoBody value. Do not recompute them.
+
+   One rule with every platform font in its src list, not one rule per platform. With
+   three same-family rules Chrome builds the fallback from every face whose local()
+   resolves and loads each installed one again for every size and weight it sets Hangul
+   at, before first paint. A machine with Malgun Gothic and Noto Sans KR both installed,
+   which recent Korean Windows is, paid for both. In a single src list only the first
+   local() that resolves is loaded.
+
+   The order keeps the face each platform got from the three rules, where the last
+   declared one won: Malgun Gothic wherever it is installed (Windows, and Macs with
+   Office), then Apple SD Gothic Neo (macOS, iOS), then Noto Sans KR or Nanum Gothic.
+   The overrides were the same on all three, so no metric moves. Malgun's hhea
+   (2229/-495) and typo (1638/-410) metrics disagree; the overrides make it irrelevant
+   which one the browser reads. */
 @font-face {
   font-family: 'KoFallback';
-  src: local('Noto Sans KR'), local('NotoSansKR-Regular'), local('Nanum Gothic');
-  size-adjust: 81.49%; ascent-override: 110.17%; descent-override: 27.91%; line-gap-override: 0%;
-  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
-}
-@font-face { /* macOS, iOS. Later declarations win; an unresolved local() falls upward. */
-  font-family: 'KoFallback';
-  src: local('Apple SD Gothic Neo');
-  size-adjust: 81.49%; ascent-override: 110.17%; descent-override: 27.91%; line-gap-override: 0%;
-  unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
-}
-@font-face { /* Windows. Its hhea (2229/-495) and typo (1638/-410) disagree; the
-                overrides make it irrelevant which one the browser reads. */
-  font-family: 'KoFallback';
-  src: local('Malgun Gothic');
+  src: local('Malgun Gothic'), local('Apple SD Gothic Neo'),
+       local('Noto Sans KR'), local('NotoSansKR-Regular'), local('Nanum Gothic');
   size-adjust: 81.49%; ascent-override: 110.17%; descent-override: 27.91%; line-gap-override: 0%;
   unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
 }
