@@ -29,19 +29,20 @@ const { shape, rhythm } = proseShape(md);
  * The reference prints one on every article — `by <strong>Nicholas Carlini</strong>`
  * followed by the date, checked on three of its posts across 2024, 2025 and 2026 — so a
  * byline belongs here. A byline names a person, so this is the person: the same string
- * Base.astro holds as SITE_OWNER and paints as the wordmark in the page header of all 36
- * pages. NOT 'sqzer' — that is the domain (blog.sqzer.com), which Base.astro spends its
- * own comment distinguishing from the owner's name, and which only ever appears in
- * <title> and the feed title. Printing it here would have the header say one name and the
- * byline three lines below it say another, where the reference says the same name twice.
+ * Base.astro holds as SITE_OWNER and prints in the copyright line at the foot of every
+ * page, and in the header slot on / and the 404 page. NOT 'sqzer' — that is the domain
+ * (blog.sqzer.com), which Base.astro spends its own comment distinguishing from the
+ * owner's name, and which only ever appears in <title> and the feed title. Printing it
+ * here would have the byline say one name and the copyright line of the same page
+ * another.
  *
  * Duplicated rather than imported because SITE_OWNER is a module-scoped const in
- * Base.astro's frontmatter with no export, and Base.astro is not this run's to edit.
+ * Base.astro's frontmatter, and nothing outside a component can import its frontmatter.
  * Keep the two in sync: src/layouts/Base.astro, `const SITE_OWNER`.
  *
- * Site-level rather than per-post because the writing schema has no `author` field and
- * all 30 posts' front matter is title/date/tags. A per-post byline — a guest post, a
- * co-author — would need that field on the collection, which is a schema change.
+ * Site-level rather than per-post because the writing schema has no `author` field. A
+ * per-post byline — a guest post, a co-author — would need that field on the collection,
+ * which is a schema change.
  */
 const AUTHOR = 'Hyukjin An';
 
@@ -53,16 +54,20 @@ const lang = docLang(md);
 /*
  * Which font to preload is a different question from which language to declare, and the
  * two answers differ on real posts. `lang` is a ratio over prose with code fences removed,
- * so We_need_to_talk is correctly an English document at 0.28 - and it still paints 760
- * Hangul syllables, because the English essays quote Korean. Preloading by `lang` would
- * leave those in fallback behind a third-wave request. One Hangul character anywhere in
- * the rendered body is enough to need the whole 118KB face, so the test is presence, not
- * proportion, and it runs on the raw source including fences: 20 of the 55 code blocks in
- * the corpus contain Hangul comments.
+ * so We_need_to_talk is correctly an English document at 0.28 — and it still paints 753
+ * Hangul syllables, because both English essays carry a KR half. Preloading by `lang`
+ * would leave those in fallback behind a third-wave request. One Hangul character anywhere
+ * in the rendered body is enough to need the whole 118KB face, so the test is presence,
+ * not proportion, and it runs on the raw source including fences: 20 of the corpus's 55
+ * fenced blocks (52 code plates and 3 diagrams) contain Hangul, in comments, placeholders
+ * and diagram labels.
  */
 const ko = hasHangul(md, post.data.title, post.data.deck);
 
-/** deck is empty on all 30 posts, so the description falls back to the opening sentence. */
+/**
+ * deck is empty on all 30 posts, so the description falls back to excerpt(): the opening
+ * paragraph as plain text, cut to 160 characters.
+ */
 const description = post.data.deck ?? excerpt(md);
 
 /**
@@ -75,21 +80,21 @@ const description = post.data.deck ?? excerpt(md);
  * — and nothing at all about genre.
  *
  * Three levels deep, counted from the document's own top heading rather than from <h1>.
- * The absolute `depth <= 3` this used to be looked equivalent and was not, because
- * satteri-prose demotes every heading by one in any document that contains an h1 — so
- * "depth 3" is the author's ### in 안전하고 and the author's ## in tso, and the filter
- * silently meant a different thing on either side of that. Counted in the built DOM:
+ * An absolute `depth <= 3` looks equivalent and is not, because satteri-prose demotes
+ * every heading by one in any document that contains an h1 (and no h6) — so "depth 3" is
+ * the author's ### in 안전하고 and the author's ## in tso, and an absolute filter silently
+ * means a different thing on either side of that. Counted in the built DOM:
  *
  *                            absolute <= 3      relative to top
- *     tso                        5                  11     six ### subsections restored
- *     journalctl                 2                   6     four ### sections restored
+ *     tso                        5                  11     six ### subsections kept
+ *     journalctl                 2                   6     four ### sections kept
  *     sysmon                    11                  18
  *
- * tso fell under the six-entry gate on that arithmetic alone and shipped no contents at
- * all, and journalctl — a command reference, the single most jumped-around document in
- * the corpus — showed two entries. Every post in the corpus starts at h2 after demotion,
- * so today the two readings differ only in where they stop; the relative form is what
- * keeps them in agreement if a document ever opens at h3 or the demotion rule moves.
+ * On the absolute count journalctl — a command reference, the single most jumped-around
+ * document in the corpus — would show two entries. Every post with more than one heading
+ * starts at h2 after demotion, so today the two readings differ only in where they stop;
+ * the relative form is what keeps them in agreement if a document ever opens at h3 or the
+ * demotion rule moves.
  *
  * The distribution over the 30 posts, entries per document:
  *
@@ -102,15 +107,15 @@ const description = post.data.deck ?? excerpt(md);
  * 2, and it is ONE gate for both presentations. What decided it:
  *   - 1 is not a list. A single entry offers no choice — it is a link to a point in the
  *     middle of the page, filed under a heading that says "Contents" — and the rail would
- *     spend 240px of gutter and a full-height rule stating it. Two is the smallest list a
- *     reader can navigate WITH. It is the only threshold that follows from the premise
- *     rather than from this corpus's accidents, which is what makes it safe to leave in
- *     place while the 16 documents above are being written into.
- *   - the old threshold was 6, picked out of a gap in this distribution, and the gap is
- *     exactly the artefact the premise dissolves: every one of those documents is one
- *     editing pass away from moving across it. 6 also selected nine documents while the
- *     page box was already reserving room for a rail on all thirty (see the rail block).
- *   - `shape === 'technical'` is gone. It existed to keep a long list of decorative
+ *     spend at least 240px of gutter and a full-height rule stating it. Two is the
+ *     smallest list a reader can navigate WITH. It is the only threshold that follows
+ *     from the premise rather than from this corpus's accidents, which is what makes it
+ *     safe to leave in place while the 16 documents below the line are being written into.
+ *   - not 6, the threshold the gap in this distribution suggests. That gap is exactly the
+ *     artefact the premise dissolves: every document near it is one editing pass away
+ *     from moving across it. 6 would also select nine documents while the page box
+ *     reserves room for a rail on all thirty (see the rail block).
+ *   - no `shape === 'technical'` test. A genre test keeps a long list of decorative
  *     headings out of an essay, and at two entries there is no long list to keep out. An
  *     essay with sections is a document with sections: this admits AIOdyssey and
  *     We_need_to_talk, both essay-shaped, both two real sections.
@@ -155,8 +160,9 @@ const ld = {
      excerpt() finds no paragraph to fall back on — a post copied from the template whose
      body has not been written yet. Both other sinks already drop it in that case:
      Base.astro guards <meta name="description"> behind a truth test, and @astrojs/rss
-     omits the element. This key was the last place a blank field still put an empty
-     value into the page, asserting that the post has an empty description. */
+     omits the element. Emitted empty, this key would be the one place a blank field
+     still put an empty value into the page, asserting that the post has an empty
+     description. */
   ...(description ? { description } : {}),
   mainEntityOfPage: new URL(postUrl(post), Astro.site).href,
 };
@@ -170,9 +176,10 @@ const ld = {
   {/* Outside .post-shell, and that placement is load-bearing rather than tidy. The shell
       carries `container-type: inline-size`, which implies layout containment, which makes
       it a containing block for position:fixed descendants. Put the rail inside it and
-      `right: 50% + …` resolves against the 1024px shell instead of the viewport, `top`
-      measures from the shell, and the whole thing scrolls away with the article. Here in
-      <main>, which sets no containment, it is fixed to the viewport as intended.
+      `right: var(--toc-x)`, a percentage expression, resolves against the 1024px shell
+      instead of the viewport, `top` measures from the shell, and the whole thing scrolls
+      away with the article. Here in <main>, which sets no containment, it is fixed to the
+      viewport as intended.
       In reading order it precedes the article, which is where a contents list belongs. */}
   {showToc && (
     <nav class="toc-rail" aria-labelledby="toc-rail-title">
@@ -180,30 +187,23 @@ const ld = {
       <ol class="toc-rail__list">
         {toc.map((h) => (
           <li class="toc-rail__item" data-level={tocLevel(h.depth)}>
-            {/* data-target, not the href, is what the scroll-spy resolves: 21 of the 30
-                posts are Korean and `a.hash` comes back percent-encoded in some engines,
-                so reading the slug straight out of the attribute skips a decode step
-                that has to be right for every one of them. */}
+            {/* data-target, not the href, is what the scroll-spy resolves: the headings of
+                a Korean post have Hangul slugs, and `a.hash` comes back percent-encoded in
+                some engines, so reading the slug straight out of the attribute skips a
+                decode step that has to be right for every one of them. */}
             {/* lang per entry, and it is this rail's price for living outside .post.
-                The article declares lang="ko" on <article class="post">, and the inline
-                <details class="toc"> below sits inside it, so the collapsed list inherits
-                the right language for free. The rail cannot: it is hoisted out to <main>
-                so that .post-shell's `container-type` does not become its containing
-                block, and out there the nearest [lang] is <html lang="en">. Measured in
-                the built DOM before this line existed: 15 of sysmon's 18 entries, all 10
-                of bind9's and 8 of tso's 11 were Hangul announced as English — the same
-                strings the inline list announces correctly at the same widths. Per entry
-                rather than one lang on the <nav>, because out here `en` really is the
-                document: how-to-win's list is 25 English headings to 3 Korean, and
-                langOf() drops an agreeing value so a reader is not switched for them.
-                Same call the Writing index makes on the same kind of string. */}
-            {/* The <span> exists only so the hover rule has an inline box to draw on. The
-                link itself is a -webkit-box with a 2-line clamp, which Chrome blockifies,
-                so it fills the 265px rail column while its text measures 87px -- a rule on
-                it would be a 265px bar under 87px of heading. The span's fragments are the
-                text, per line (measured 257.98 / 132.86 on a wrapped entry), and the clamp,
-                the ellipsis, the hover clamp-lift and the scroll spy's
-                querySelectorAll on .toc-rail__link all read the <a> and are unaffected. */}
+                The article declares its language on <article class="post">, and the
+                inline <details class="toc"> sits inside it, so the collapsed list inherits
+                that language and marks only the entries in the other script. The rail
+                cannot inherit it: it is hoisted out to <main> so that .post-shell's
+                `container-type` does not become its containing block, and out there the
+                nearest [lang] is <html lang="en">. Without a lang of their own, 15 of
+                sysmon's 18 entries, all 10 of bind9's and 8 of tso's 11 are Hangul
+                announced as English — the same strings the inline list announces
+                correctly. Per entry rather than one lang on the <nav>, because out here
+                `en` really is the document: how-to-win's list is 25 English headings to 3
+                Korean, and langOf() drops an agreeing value so a reader is not switched
+                for them. Same call the Writing index makes on the same kind of string. */}
             <a class="toc-rail__link" href={`#${h.slug}`} data-target={h.slug} lang={langOf(h.text, 'en')}>{h.text}</a>
           </li>
         ))}
@@ -220,15 +220,14 @@ const ld = {
       </p>
       <h1 class="post__title" lang={langOf(post.data.title, lang)}>{post.data.title}</h1>
       {post.data.deck && <p class="post__deck">{post.data.deck}</p>}
-      {/* What stood here was `{minutes} min read`. It is gone at the reader's request, and
-          the reference is the reason it has nothing to be replaced by: its header is a
-          title, a byline and a date, and it prints no estimate of how long the reading
-          will take. The byline takes the slot. lang="en" because the word "by" and the
-          Latin-script name are the same on all 30 posts, 21 of which declare lang="ko" on
+      {/* No reading-time estimate: the reference's header is a title, a byline and a
+          date, and it prints no estimate of how long the reading will take. The byline
+          takes the slot under the title. lang="en" because the word "by" and the
+          Latin-script name are the same on every post, most of which declare lang="ko" on
           <article> — the same reason the contents rail labels its entries one by one. */}
       {/* The gap between name and date is padding, so without the hidden comma the text
-          itself read "Hyukjin AnJune 27, 2026" to a screen reader, to Reader View (which
-          takes this paragraph as the byline) and in anything copied from it. */}
+          itself would read "Hyukjin AnJune 27, 2026" to a screen reader, to Reader View
+          (which takes this paragraph as the byline) and in anything copied from it. */}
       <p class="post__byline" lang="en">by <span class="post__author">{AUTHOR}</span><span class="sr-only">, </span><time class="post__date" datetime={post.data.date}>{longDate(post.data.date)}</time></p>
     </header>
 
@@ -248,39 +247,40 @@ const ld = {
   </div>
   {/* JSON.stringify does not escape `<`, so a deck or a title containing `</script>` closes
       this element early and the rest of the object is parsed as HTML. The title is the
-      author's and the deck is about to become a field they fill in freely, so this is a
-      string they can type, not a string only the build produces. `<` is escaped as its
-      < form, which is the same character to a JSON parser and inert to an HTML one. */}
+      author's and the deck is a field they fill in freely, so this is a string they can
+      type, not a string only the build produces. `<` is escaped as its `\u003c` form, which
+      is the same character to a JSON parser and inert to an HTML one. */}
   <script type="application/ld+json" set:html={JSON.stringify(ld).replace(/</g, '\\u003c')} />
-</Base>
 
 <script>
   /*
    * Current-section marking for the contents rail.
    *
    * Enhancement only. Without it every entry in the rail is still a working anchor, and
-   * Astro hoists this script onto all 30 article pages, so the first line is the guard
+   * Astro renders this script into all 30 article pages, so the first test is the guard
    * that makes it a no-op on the 16 that have no rail today.
    *
-   * No scroll handler, and nothing measured to decide which entry is current — one
+   * No scroll handler, and no geometry measured to decide which entry is current — an
    * IntersectionObserver, with a root shaped so that `isIntersecting` is already the
-   * answer. (The single property read further down runs only when the section changes,
-   * and it is about the rail's own scrollport, not about where the reader is.)
+   * answer. (Two reads further down: the rail's own scrollport, only when the section
+   * changes, and scrollY, only while the end of the document is on screen, to tell a page
+   * the reader has scrolled from one that fits on screen whole.)
    *
    * The reading line is 15% of the way down the viewport, and a heading counts as current
    * once it has crossed it. Expressing that as "is the heading inside a band at the top of
    * the viewport" does not work, and the failure is not theoretical: a band is a single
    * boolean, so above-the-band and below-the-band are the same state, and an instant jump
    * over the band — Home, a restored scroll position, window.scrollTo — changes nothing
-   * and fires no callback. Measured on how-to-win: after scrollTo(0, 0) from the foot of
-   * the document the rail still marked "Conclusion".
+   * and fires no callback. So with a band, scrollTo(0, 0) from the foot of how-to-win
+   * would leave the rail marking "Conclusion" at the top of the page.
    *
    * So the root is not a band but a half-plane: 100,000px of margin above the viewport and
    * -85% below, giving a box that runs from far above the document to the reading line.
    * A heading intersects it exactly while it is above that line, "above" and "below" are
    * now different states, and every crossing in either direction fires — instant jumps
-   * included. 100,000px against a tallest article of 14,631px is roughly seven times the
-   * document, so nothing can drift out of the top of the root.
+   * included. The tallest document is under 17,000px at 1440px, the narrowest window that
+   * shows the rail, so 100,000px is roughly six times it and nothing can drift out of the
+   * top of the root.
    *
    * 15% is 135px on a laptop, against the 16px (--sp-40) of scroll-margin the headings
    * carry — so following a rail entry always lands its own heading above the line and
@@ -290,24 +290,22 @@ const ld = {
    *
    * The current section is then the LAST heading that has crossed, in document order.
    * None crossed means the reader is above the first heading — in the lede, or back at the
-   * top of the document — and the answer there is the first entry, not nothing. Marking
-   * nothing is what a reader reported as the rail "not going back to the start": scrolling
-   * to the foot of how-to-win and then Home left the rail with no mark at all AND left it
-   * scrolled 175px down its own 917px list, so the list opened mid-entry with CONTENTS off
-   * the top. Both halves of that are fixed here, and the second half is the one that was
-   * actually visible: whenever the answer is entry one, the rail is returned to its own
-   * scrollTop 0 so the title and the first entry are whole.
+   * top of the document — and the answer there is the first entry, not nothing: a reader
+   * who scrolls to the foot of how-to-win and presses Home sees entry one marked. The
+   * marks on the way down may also have scrolled the rail down its own list, which would
+   * open it mid-entry with CONTENTS off the top, so whenever the answer is entry one the
+   * rail is returned to its own scrollTop 0 and the title and the first entry are whole.
    *
    * One correction to that rule, at the far end. A heading can only reach the line if the
    * document is tall enough to push it there, so a final section shorter than 85% of the
-   * viewport can never be marked at all: measured on how-to-win, scrolling to the very
-   * bottom left "Conclusion" 400px down the screen, in full view, with the rail still
-   * pointing at the section above it. A second observer watches an empty marker appended
-   * after everything else in <body>, against the plain viewport. It is on screen only when
-   * the page is scrolled as far as it goes, which is the one position a short final
-   * section can never be marked from, so there the last entry is the answer. Watching the
-   * end of the document rather than anything above it keeps this from firing while the
-   * last heading can still be scrolled up to the line.
+   * viewport can never be marked at all: on how-to-win, scrolled to the very bottom,
+   * "Conclusion" sits in full view well below the line, and the last-crossed rule alone
+   * would leave the rail pointing at the section before it. A second observer watches an
+   * empty marker appended to the end of <body>, against the plain viewport. It is on
+   * screen only when the page is scrolled as far as it goes, which is the one position a
+   * short final section can never be marked from, so there the last entry is the answer.
+   * Watching the end of the document rather than anything above it keeps this from firing
+   * while the last heading can still be scrolled up to the line.
    */
   const rail = document.querySelector('.toc-rail');
   if (rail) {
@@ -339,8 +337,9 @@ const ld = {
         /* The one place the rail's own scroll position is set outright rather than nudged.
            scrollIntoView({ block: 'nearest' }) is a no-op once the entry is already in
            view, so coming back up to entry one from the foot of the article would leave
-           the list wherever the last nudge had put it — 175px down, on how-to-win at
-           1440x900. At the top of the document the rail belongs at the top of itself.
+           the list wherever the last nudge had put it: on how-to-win at 1440x900, with its
+           head scrolled out of view. At the top of the document the rail belongs at the
+           top of itself.
            Written on every callback that lands here rather than only on a change: it is
            one property write, the callbacks are section crossings and not frames, and it
            also recovers a rail the reader had scrolled by hand. */
@@ -355,10 +354,10 @@ const ld = {
         const link = links.get(marked);
         link.setAttribute('aria-current', 'location');
         /* Keep the mark inside the rail's own scrollport — one of the 14 lists is taller
-           than it at 1440x900, and the count only rises as posts gain headings. One
-           property read, and only when the section changes, which is a handful of times
-           over an article rather than once a frame. Skipped at the start, where the line
-           above has already put the whole head of the list on screen. */
+           than it at 1440x900, and the count only rises as posts gain headings. Read only
+           when the section changes, which is a handful of times over an article rather
+           than once a frame. Skipped at the start, where `rail.scrollTop = 0` has already
+           put the whole head of the list on screen. */
         if (!atStart && rail.scrollHeight > rail.clientHeight) link.scrollIntoView({ block: 'nearest' });
       };
 
@@ -375,9 +374,10 @@ const ld = {
       for (const el of targets) reading.observe(el);
 
       // One pixel tall, pulled up over the pixel it adds, so it moves nothing and occupies
-      // the document's last pixel. Zero height does not work: measured, the fractional
-      // document height left a zero-area marker just past the viewport at full scroll,
-      // and the last entry was never marked on 8 of the 14 posts with a rail.
+      // the document's last pixel. Zero height does not work: when the document's height
+      // has a fraction that rounds the scroll range down, a zero-area marker sits just past
+      // the viewport at full scroll and is not detected, so a short final section is never
+      // marked.
       const end = document.createElement('div');
       end.setAttribute('aria-hidden', 'true');
       end.style.height = '1px';
@@ -404,14 +404,14 @@ const ld = {
    * The row the button lands in is NOT made here. base.css reserves it on every plate, so
    * nothing reflows when this runs and the band is the same with a figcaption (where the
    * label and the button share one row) and without (7 of the corpus's 52 plates, the ones
-   * whose fence named no language, get no figcaption at all).
+   * whose fence names no language or `plaintext`, get no figcaption at all).
    *
    * What gets copied is `code.textContent`. Shiki's per-token <span>s contribute their text
    * and nothing else, the break between two rows is a real newline text node, and the
-   * language label lives in a <figcaption> outside the <pre> — so the string is the fence's source
-   * back, exactly, with no markup and no label in it. There is no trailing newline, which is
-   * the fence's own shape and also the safer paste: a shell runs the last line when it
-   * arrives with one, and does not when it does not.
+   * language label lives in a <figcaption> outside the <pre> — so the string is the
+   * fence's source back, exactly, with no markup and no label in it. There is no trailing
+   * newline, which is the fence's own shape and also the safer paste: a shell runs the
+   * last line when it arrives with one, and does not when it does not.
    *
    * Insertion is `prepend`, not `append`, so the tab order matches the reading order: the
    * button at the top right of the plate, then the <pre>, which carries Shiki's own
@@ -435,7 +435,7 @@ const ld = {
     document.body.append(status);
 
     // Emptied again two seconds later: the region sits after the footer, and a message
-    // left in it was read out of context by anyone reading on to the end of the page.
+    // left in it would be read out of context by anyone reading on to the end of the page.
     let frame = 0;
     let clear = 0;
     const announce = (message) => {
@@ -526,16 +526,19 @@ const ld = {
     }
   }
 </script>
+</Base>
 
-<!-- is:global, not scoped. Astro rewrites a scoped `.prose p` to `.prose p[data-astro-cid-…]`,
-     and the elements <Content /> emits carry no cid, so every body rule would silently miss.
-     Only this page ships this sheet. Every selector is rooted at .post except the contents
-     rail, the hairline beside it (`main:has(.toc-rail)::before`) and the two rules that
-     move the page box out of its way — `:root` and `main:has(.post-shell)`. Those two are
-     the widening the rail asked for; they apply to every article rather than only the ones
-     carrying a rail, and outside 1440–1584px they compute exactly what base.css already
-     did. Nothing here touches the site header: it is the same bar in the same place on
-     every route, and base.css owns it. All of this is explained in the rail block below. -->
+{/* is:global, not scoped. Astro rewrites a scoped `.prose p` to `.prose p[data-astro-cid-…]`,
+    and the elements <Content /> emits carry no cid, so every body rule would silently miss.
+    Only this page ships this sheet. Every selector matches the article's wrapper,
+    .post-shell, or something inside it, except the contents rail, the hairline beside it
+    (`main:has(.toc-rail)::before`) and the two rules that move the page box out of its
+    way — `:root` and `main:has(.post-shell)`. Those two are the widening the rail asked
+    for; they apply to every article rather than only the ones carrying a rail, and outside
+    1440–1584px they give <main> the same margins base.css alone does (from 1440px up it is
+    also position: relative, which moves nothing). Nothing here touches the
+    site header: it is the same bar in the same place on every route, and base.css owns
+    it. All of this is explained in the rail block below. */}
 <style is:global>
   /* ══ Geometry ════════════════════════════════════════════════════════════
      One left edge, with one bounded exception that is named here rather than left to be
