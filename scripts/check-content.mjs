@@ -137,6 +137,61 @@ function outsideCode(md) {
   }).join('\n\n');
 }
 
+/* ── Sizes the renderer cannot take ──────────────────────────────────────────
+   Sätteri's smart punctuation costs bytes x marks within one inline run: a paragraph, a
+   list item, a heading. Measured: 85 KB took 1.4 s and 2 GB; from 88 KB of pasted JSON or
+   169 KB of unfenced log the render throws and the post would ship empty; past about
+   41,000 apostrophes in one run Node itself dies with no file named. The same text split
+   into paragraphs costs nothing. So each run outside code is held under 16 KB and 400
+   quote, & and ... marks, 28 to 80 times the largest paragraph the corpus has. A table
+   is held under 20,000 cells: Sätteri has no cell limit, and an 18 KB table 3,072 columns
+   wide became a 94 MB page. Code fences are not runs; their long lines are capped in
+   astro.config.mjs instead. */
+const RUN_BYTES = 16 * 1024;
+const RUN_MARKS = 400;
+const TABLE_CELLS = 20_000;
+const DELIMITER_ROW = /^\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)+\|?[ \t]*$/;
+const STARTS_RUN = /^(?:[-*+]|\d{1,9}[.)])(?:[ \t]|$)|^#{1,6}(?:[ \t]|$)/;
+
+function checkSizes(rel, body, firstLine) {
+  const blocks = [];
+  let block = null;
+  let fence = null;
+  body.replace(/\r\n?/g, '\n').split('\n').forEach((line, i) => {
+    const run = /^[\s>]*(`{3,}|~{3,})/.exec(line);
+    const rest = run ? line.slice(run.index + run[0].length) : '';
+    if (fence) {
+      if (run && run[1][0] === fence[0] && run[1].length >= fence.length && !rest.trim()) fence = null;
+      return;
+    }
+    const text = line.replace(/^[ \t>]*/, '');
+    if (run && !(run[1][0] === '`' && rest.includes('`'))) { fence = run[1]; block = null; return; }
+    if (!text.trim()) { block = null; return; }
+    if (!block) blocks.push((block = { line: firstLine + i, lines: [] }));
+    block.lines.push({ line: firstLine + i, text });
+  });
+  for (const b of blocks) {
+    if (b.lines.some((l) => DELIMITER_ROW.test(l.text))) {
+      const columns = b.lines[0].text.replace(/^\||\|$/g, '').split('|').length;
+      const cells = columns * (b.lines.length - 1);
+      if (cells > TABLE_CELLS)
+        err(rel, `line ${b.line}: a table of ${cells.toLocaleString()} cells is over the ${TABLE_CELLS.toLocaleString()} the renderer can take; split it, or link the data as a file`);
+      continue;
+    }
+    const runs = [];
+    for (const l of b.lines) {
+      if (!runs.length || STARTS_RUN.test(l.text)) runs.push({ line: l.line, text: '' });
+      runs[runs.length - 1].text += `${l.text}\n`;
+    }
+    for (const r of runs) {
+      const bytes = Buffer.byteLength(r.text, 'utf8');
+      const marks = (r.text.match(/["'&]|\.\.\./g) ?? []).length;
+      if (bytes > RUN_BYTES || marks > RUN_MARKS)
+        err(rel, `line ${r.line}: a paragraph of ${(bytes / 1024).toFixed(1)} KB with ${marks} quote, & and ... marks is over the ${RUN_BYTES / 1024} KB / ${RUN_MARKS} limit, past which rendering slows quadratically and then fails; put a pasted log or JSON in a code fence, or split it into paragraphs`);
+    }
+  }
+}
+
 /* Two spellings, tried in this order at each position. `(</uploads/a b.png>)` is how
    CommonMark writes a destination with a space in it (screenshots are named that way by
    default), and it runs to the `>`; the bare form ends at the first space or delimiter. */
@@ -203,7 +258,10 @@ for (const abs of files) {
      place it can be noticed is here, by comparing what was typed against what parsed. */
   for (const [k, v] of Object.entries(parsed || {})) {
     if (typeof v !== 'string') continue;
-    const typed = (new RegExp('^' + k + ':[ \\t]*(.*)$', 'm').exec(fm) || [])[1] || '';
+    // The key is the author's text, so it is escaped before it becomes a pattern: unescaped,
+    // `c++:` threw a SyntaxError naming no file, and a key like `(x+x+)+y` backtracked for
+    // seconds per line.
+    const typed = (new RegExp('^' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':[ \\t]*(.*)$', 'm').exec(fm) || [])[1] || '';
     const t = typed.trim();
     if (t.includes('#') && !t.startsWith('"') && !t.startsWith("'") && v.length < t.length - 1)
       warn(rel, `${k} is cut short at a "#": YAML read it as ${JSON.stringify(v)} — quote the whole value to keep the rest`);
@@ -254,6 +312,7 @@ for (const abs of files) {
   if (!tagsBlock && !(tagsInline && /[^\s[\],]/.test(tagsInline[1]))) req('tags', rel, 'tags is empty');
 
   checkUploads(rel, raw);
+  checkSizes(rel, raw.slice(m[0].length), m[0].split('\n').length);
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -387,6 +446,7 @@ for (const abs of codeFiles) {
      renders as a bare link with nothing under it. */
   if (!body.trim()) err(rel, 'description is empty — the body of the file is the sentence the page prints');
   checkUploads(rel, raw);
+  checkSizes(rel, body, raw.slice(0, raw.length - body.length).split('\n').length);
 
   /* A duplicate `order` is a hard error rather than a warning. The page does break the
      tie — by name, then by id, so the build is deterministic either way — but on a list
@@ -402,10 +462,16 @@ for (const abs of codeFiles) {
   }
 }
 
-// about.md is the home page, and its portrait lives in /uploads/ like any post image.
+// about.md is the home page: its portrait lives in /uploads/ like any post image, and its
+// prose goes through the same renderer.
 {
   const abs = path.join(SRC, 'content', 'about.md');
-  if (existsSync(abs)) checkUploads('content/about.md', await read(abs));
+  if (existsSync(abs)) {
+    const raw = await read(abs);
+    const fm = /^---\r?\n[\s\S]*?\r?\n---/.exec(raw);
+    checkUploads('content/about.md', raw);
+    checkSizes('content/about.md', fm ? raw.slice(fm[0].length) : raw, fm ? fm[0].split('\n').length : 1);
+  }
 }
 
 console.log(`check-content: ${files.length} documents, ${seen.size} URLs, ${codeFiles.length} code entries, STRICT=${[...STRICT].join(',')}`);
