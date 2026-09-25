@@ -48,6 +48,29 @@ const asciiLower = (s) => s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charC
 /** The year segment already keeps slugs away from sub-view names; this is a second line. */
 const RESERVED = new Set(['essay', 'research', 'video', 'slides', 'podcast', 'index', 'page', 'tags', 'feed', 'about']);
 
+/* A file name is a URL segment (writing) or an entry id (code), so it is held to what
+   survives as one: letters in any script, digits, - and _. Measured on a build: `#` in
+   the name dropped the post from every page, the feed and the sitemap with exit 0; `%`
+   shipped a URL GitHub Pages answers with 400; a space shipped a raw space in href. */
+const FILENAME = /^[\p{L}\p{N}][\p{L}\p{N}_-]*$/u;
+const FILENAME_RULE = 'file name may use only letters, digits, - and _ (it becomes the address; #, %, ? or a space breaks or drops the page)';
+
+/* The collection id is the file name with ASCII lowercased (src/content.config.ts), so
+   Arp.md and arp.md are one id and the loader keeps only one of them. The two cannot sit
+   side by side on Windows, but a commit made on Linux or in the web editor can add the
+   second, and the build would then drop a post without saying which. */
+const idClash = (ids, id, rel) => {
+  if (ids.has(id)) err(rel, `has the same id as ${ids.get(id)} ("${id}"): the names differ only in letter case, and one of the two would not be built`);
+  else ids.set(id, rel);
+};
+
+/* 2025-02-30 matches YYYY-MM-DD, and the loader rolls it over to March 2 and publishes it
+   there; 2025-12-32 rolls into the next year's URL, which then never moves back. */
+const realDate = (d) => {
+  const t = new Date(`${d}T00:00:00Z`);
+  return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d;
+};
+
 /* ── Images ──────────────────────────────────────────────────────────────────
    Every /uploads/ path a document references must exist in public/uploads, spelled
    exactly as on disk. Pages serves a case-sensitive file system, while existsSync on
@@ -147,6 +170,7 @@ const files = [];
 if (files.length === 0) err('(all)', 'no markdown found under content — the checkout may have failed');
 
 const seen = new Map();
+const writingIds = new Map();
 for (const abs of files) {
   const rel = path.relative(SRC, abs).split(path.sep).join('/');
   const raw = await read(abs);
@@ -199,10 +223,13 @@ for (const abs of files) {
   const date = get('date');
   if (!title) err(rel, 'missing title');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) err(rel, `date is not YYYY-MM-DD: ${date || '(none)'}`);
+  else if (!realDate(date)) err(rel, `date is not a real calendar date: ${date}`);
 
   const slug = asciiLower(path.basename(abs, '.md'));
+  if (!FILENAME.test(path.basename(abs, '.md'))) err(rel, FILENAME_RULE);
   if (RESERVED.has(slug)) err(rel, `slug collides with a reserved name: ${slug}`);
   if (slug !== slug.normalize('NFC')) err(rel, 'filename is not NFC-normalised (decomposed Hangul jamo)');
+  idClash(writingIds, slug, rel);
 
   const url = `/writing/${date.slice(0, 4)}/${slug}/`;
   if (seen.has(url)) err(rel, `URL collision: ${url} (already taken by ${seen.get(url)})`);
@@ -333,8 +360,12 @@ const isProjectUrl = (v) => {
 };
 
 const orders = new Map();
+const codeIds = new Map();
 for (const abs of codeFiles) {
   const rel = path.relative(SRC, abs).split(path.sep).join('/');
+  const base = path.basename(abs, '.md');
+  if (!FILENAME.test(base)) err(rel, FILENAME_RULE);
+  idClash(codeIds, asciiLower(base), rel);
   const raw = await read(abs);
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(raw);
   if (!m) { err(rel, 'missing front matter'); continue; }
