@@ -9,6 +9,7 @@ import satteriGuard from './src/lib/satteri-guard.mjs';
 import satteriProse, { satteriHeadingScan } from './src/lib/satteri-prose.mjs';
 import satteriDiagram from './src/lib/satteri-diagram.mjs';
 import satteriKorean from './src/lib/satteri-korean.mjs';
+import satteriLang from './src/lib/satteri-lang.mjs';
 import { diagramCopy, diagramKey, findMermaidFences, readDiagram } from './src/lib/diagrams.mjs';
 
 /**
@@ -198,12 +199,13 @@ export default defineConfig({
     //   hast:  satteriHeadingScan — whether the post has an h1 or an h6; must precede satteriProse
     //   hast:  satteriProse   — heading demotion, intrinsic image size, table scrollers
     //   hast:  satteriDiagram — a mermaid fence -> the SVG baked from it before the build
+    //   hast:  satteriLang    — lang on sections and headings not in the post's language
     // Ordering matters: hastPlugins run after highlighting and BEFORE heading-id
     // collection, so `headings` from render() reports the demoted depths. satteriGuard
     // goes first, before satteriDiagram adds the one raw node the site trusts.
     processor: satteri({
       mdastPlugins: [satteriKorean(), satteriFigure()],
-      hastPlugins: [satteriGuard(), satteriHeadingScan(), satteriProse({ publicDir: 'public' }), satteriDiagram()],
+      hastPlugins: [satteriGuard(), satteriHeadingScan(), satteriProse({ publicDir: 'public' }), satteriDiagram(), satteriLang()],
       /*
        * Parser flags. Astro hands Sätteri only `{ gfm, smartPunctuation }`. Every other
        * entry in `Features` defaults off except `frontmatter`, which Sätteri turns on unless

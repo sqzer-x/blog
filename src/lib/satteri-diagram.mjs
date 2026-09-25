@@ -100,10 +100,12 @@ export default function satteriDiagram() {
           properties: {
             className: ['diagram'],
             'data-diagram': kind || 'diagram',
-            // Not for scrolling any more - see the header. A labelled region a reader can
+            // Not for scrolling any more - see the header. A labelled group a reader can
             // reach, and stop on, before zooming into the one thing on the page that rewards it.
+            // A group, not a region: every region is a landmark, and a post with two
+            // sequence diagrams listed two landmarks with the same name.
             tabindex: '0',
-            role: 'region',
+            role: 'group',
             'aria-label': label,
           },
           children: [{ type: 'raw', value: markup.trim() }],

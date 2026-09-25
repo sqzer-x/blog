@@ -4,7 +4,7 @@ import { getCollection, render } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
 import { postUrl } from '../../../lib/order';
 import { proseShape, excerpt, longDate } from '../../../lib/prose';
-import { hasHangul, langOf } from '../../../lib/hangul';
+import { docLang, hasHangul, langOf } from '../../../lib/hangul';
 import { assertRendered } from '../../../lib/rendered';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -47,23 +47,8 @@ const AUTHOR = 'Hyukjin An';
 
 const year = post.data.date.slice(0, 4);
 
-/**
- * lang follows the body, not the title, and is measured on prose only.
- *
- * The label drives leading, line breaking and speech, so it has to describe what is read.
- * Keying off the title would mislabel AI Odyssey and VTZero; counting Hangul against every
- * character would mislabel the Korean technical posts, whose shell transcripts and URLs
- * swamp the prose \u2014 measured that way sysmon lands at 0.14 and journalctl at 0.29, both
- * plainly Korean documents. With fences and link targets dropped and Hangul weighed
- * against Latin letters, the corpus splits with nothing near the line: the two English
- * essays sit at 0.25 and 0.28, and the other 28 posts all sit at 0.50 or above.
- */
-const HANGUL = /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7A3]/g;
-// Linear on any input; see the note on LINK in src/lib/prose.ts.
-const prose = md.replace(/```[\s\S]*?```/g, '').replace(/\[[^\][]*\]\((?:[^()]|\([^()]*\))*\)/g, '');
-const kor = (prose.match(HANGUL) ?? []).length;
-const lat = (prose.match(/[A-Za-z]/g) ?? []).length;
-const lang = kor / Math.max(1, kor + lat) > 0.4 ? 'ko' : 'en';
+// The body's language, measured on prose only; see docLang in src/lib/hangul.ts.
+const lang = docLang(md);
 
 /*
  * Which font to preload is a different question from which language to declare, and the
@@ -233,7 +218,7 @@ const ld = {
         <span class="post__sep" aria-hidden="true">·</span>
         <a href={`/writing/#${year}`}>{year}</a>
       </p>
-      <h1 class="post__title">{post.data.title}</h1>
+      <h1 class="post__title" lang={langOf(post.data.title, lang)}>{post.data.title}</h1>
       {post.data.deck && <p class="post__deck">{post.data.deck}</p>}
       {/* What stood here was `{minutes} min read`. It is gone at the reader's request, and
           the reference is the reason it has nothing to be replaced by: its header is a
@@ -241,7 +226,10 @@ const ld = {
           will take. The byline takes the slot. lang="en" because the word "by" and the
           Latin-script name are the same on all 30 posts, 21 of which declare lang="ko" on
           <article> — the same reason the contents rail labels its entries one by one. */}
-      <p class="post__byline" lang="en">by <span class="post__author">{AUTHOR}</span><time class="post__date" datetime={post.data.date}>{longDate(post.data.date)}</time></p>
+      {/* The gap between name and date is padding, so without the hidden comma the text
+          itself read "Hyukjin AnJune 27, 2026" to a screen reader, to Reader View (which
+          takes this paragraph as the byline) and in anything copied from it. */}
+      <p class="post__byline" lang="en">by <span class="post__author">{AUTHOR}</span><span class="sr-only">, </span><time class="post__date" datetime={post.data.date}>{longDate(post.data.date)}</time></p>
     </header>
 
     {showToc && (
@@ -249,7 +237,7 @@ const ld = {
         <summary class="toc__summary">Contents</summary>
         <ol class="toc__list">
           {toc.map((h) => (
-            <li class="toc__item" data-level={tocLevel(h.depth)}><a href={`#${h.slug}`}>{h.text}</a></li>
+            <li class="toc__item" data-level={tocLevel(h.depth)}><a href={`#${h.slug}`} lang={langOf(h.text, lang)}>{h.text}</a></li>
           ))}
         </ol>
       </details>
@@ -446,11 +434,18 @@ const ld = {
     status.setAttribute('role', 'status');
     document.body.append(status);
 
+    // Emptied again two seconds later: the region sits after the footer, and a message
+    // left in it was read out of context by anyone reading on to the end of the page.
     let frame = 0;
+    let clear = 0;
     const announce = (message) => {
       cancelAnimationFrame(frame);
+      clearTimeout(clear);
       status.textContent = '';
-      frame = requestAnimationFrame(() => { status.textContent = message; });
+      frame = requestAnimationFrame(() => {
+        status.textContent = message;
+        clear = setTimeout(() => { status.textContent = ''; }, 2000);
+      });
     };
 
     /*
@@ -1183,7 +1178,9 @@ const ld = {
      clamp-lift two rules down is deliberately left ungated -- it is a way to read a
      clipped heading, not a way to mark one, and gating it would take that away from a
      touch reader entirely. */
-  .toc-rail__link:focus-visible { color: var(--crimson); }
+  /* The ring is drawn inside the link: the rail scrolls, and a ring outside it was cut off
+     by the scrollport on the last entry and on any entry at the edge of a scrolled rail. */
+  .toc-rail__link:focus-visible { color: var(--crimson); outline-offset: -3px; }
   @media (hover: hover) {
     .toc-rail__link:hover { color: var(--crimson); }
   }

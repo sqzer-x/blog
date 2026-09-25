@@ -242,9 +242,19 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     text-wrap: balance;
   }
 
+  /* Focus moving backwards (Shift+Tab) scrolls the link only just into view, and the sticky
+     year label above covered it and the row's focus ring completely. The margin is the
+     label's own height (padding, rule, rule's gap, one line) plus the row's padding, plus
+     1rem for the ring (3px offset, 2px outline) and for the link's inline box sitting a
+     little inside its taller line; with only the ring's 5px, the ring's top still touched
+     the label. Below 36rem the date sits above the title in the row, and the container
+     rule adds its line. */
   .entry__title a {
     color: inherit;
     text-decoration: none;
+    scroll-margin-top: calc(
+      3 * var(--gap-kicker) + 4px + var(--fs-kicker) * var(--lh-medium) + var(--entry-pad) + 1rem
+    );
   }
 
   /* The whole row is the hit area, ported from .featured-article__title a:before */
@@ -343,6 +353,12 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     }
 
     .entry__title { grid-column: 1; grid-row: 2; }
+    .entry__title a {
+      scroll-margin-top: calc(
+        3 * var(--gap-kicker) + 4px + var(--fs-kicker) * var(--lh-medium) + var(--entry-pad) + 1rem
+          + var(--fs-small) * var(--lh-base) + 0.25rem
+      );
+    }
     .entry__deck  { grid-column: 1; }
   }
 

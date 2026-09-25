@@ -752,7 +752,7 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 
 /* ── Diagrams ─────────────────────────────────────────────────────────────────
    DOM contract, emitted by src/lib/satteri-diagram.mjs:
-     figure.diagram[data-diagram][tabindex=0][role=region][aria-label]
+     figure.diagram[data-diagram][tabindex=0][role=group][aria-label]
        > svg[width][height][viewBox]     (baked by scripts/render-diagrams.mjs)
 
    The SVG carries its own <style>, scoped to its own #mmd-<hash> id and holding the palette

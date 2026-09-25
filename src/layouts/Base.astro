@@ -119,9 +119,12 @@ const buildYear = new Date().getUTCFullYear();
           exactly this word, and a second one inside the banner landmark would duplicate
           it. */}
       <span class="page-name">{pageName}</span>
-      <nav>
+      {/* Named, as the page's other navs are. "page" only on the page itself: on an
+          article, Writing is the section it belongs to but a link to another page, and
+          "true" says exactly that. */}
+      <nav aria-label="Primary">
         {NAV.map((n) => (
-          <a href={n.href} aria-current={isCurrent(n.href) ? 'page' : undefined}>{n.label}</a>
+          <a href={n.href} aria-current={here === n.href ? 'page' : isCurrent(n.href) ? 'true' : undefined}>{n.label}</a>
         ))}
       </nav>
     </header>

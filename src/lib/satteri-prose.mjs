@@ -111,7 +111,9 @@ export default function satteriProse({ publicDir = 'public' } = {}) {
           if (parent?.type === 'element' && parent.tagName === 'div') return;
           ctx.wrapNode(node, {
             type: 'element', tagName: 'div',
-            properties: { className: ['scroller'], tabindex: '0', role: 'region', 'aria-label': 'Table' },
+            // A group, as the code plates are: a region is a landmark, and the Hitchhiker post
+            // listed three landmarks all named "Table".
+            properties: { className: ['scroller'], tabindex: '0', role: 'group', 'aria-label': 'Table' },
             children: [],
           });
         },
