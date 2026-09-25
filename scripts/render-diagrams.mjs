@@ -199,8 +199,8 @@ async function connect(wsUrl) {
 
 /**
  * `promise`, or a rejection after `ms`. The timer is cleared either way: a bare
- * Promise.race leaves it pending, and Node then stays alive until it fires, which held
- * every successful render open for the full two-minute render budget.
+ * Promise.race leaves it pending, and Node then stays alive until it fires, which would
+ * hold every successful render open for the full two-minute render budget.
  */
 function within(promise, ms, message) {
   let timer;
@@ -355,10 +355,12 @@ process.exit(0);
 
 /**
  * Astro's content layer caches rendered Markdown keyed on the *Markdown* file's digest, and
- * the SVG is inlined into that HTML. Re-bake a diagram without touching the prose and the
- * next build happily serves the previous picture — the one failure this whole design exists
- * to prevent. So a bake drops the store: it is a cache, the rebuild costs a second, and it
- * only happens on the rare run that changed a diagram in the first place.
+ * the SVG is inlined into that HTML. `npm run build` passes --force and re-renders every
+ * entry regardless, but `astro dev` and a build without --force read the store: re-bake a
+ * diagram without touching the prose and they serve the previous picture — the one failure
+ * this whole design exists to prevent. So a bake drops the store: it is a cache, the
+ * rebuild costs a second, and it only happens on the rare run that changed a diagram in
+ * the first place.
  */
 async function invalidateRenderedMarkdown() {
   for (const store of ['node_modules/.astro/data-store.json', '.astro/data-store.json']) {

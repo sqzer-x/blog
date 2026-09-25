@@ -1,9 +1,13 @@
 /**
  * build-info.mjs — lets the site state its own provenance.
  *
- * A deploy pipeline cannot be asked "is my commit live yet?", because the hook that starts
- * it carries no payload back. So the question is put to the site instead: it publishes the
- * commit it was built from, and a check reads that.
+ * "Is my commit live yet?" is answered by the site itself rather than by the pipeline that
+ * deployed it: every build publishes /build-info.json with the commit it was built from and
+ * when, so the answer is whatever the live site serves.
+ *
+ * Content and code share one repository, so contentSha and appSha name the same commit.
+ * CONTENT_DIR and CONTENT_SHA can still override the content side; nothing in this
+ * repository or its workflow sets them.
  */
 import { writeFile, mkdir } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';

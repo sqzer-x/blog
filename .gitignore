@@ -4,3 +4,7 @@ dist/
 public/build-info.json
 .DS_Store
 .fonts-work/
+Thumbs.db
+desktop.ini
+.env*
+*.log

@@ -1,7 +1,7 @@
 /**
  * check-dist.mjs — the post-build checks on what is about to be uploaded: every page meant
  * to carry a body has one, and every page's Content-Security-Policy allows what the page
- * actually inlines (see the section near the end).
+ * actually inlines (see the Content-Security-Policy section).
  *
  * The pages already refuse to build an entry that came back unrendered (src/lib/rendered.ts).
  * This reads the output instead of the inputs, so it still holds for a page that renders

@@ -16,10 +16,9 @@
  * pixel — schema version, mermaid config, palette, and the content-hashed font filenames.
  * Nothing here needs a manifest: the key *is* the filename.
  *
- * Re-subsetting a face changes its filename, and so every key, only once DIAGRAM_FONTS
- * below names the new file. scripts/subset-fonts.py rewrites the name in fonts.css,
- * Base.astro and tokens.css but not here, and deletes the old file, so until this list is
- * edited by hand the keys stay the same and the next render fails on a missing font.
+ * Re-subsetting a face changes its filename, and with it every key: scripts/subset-fonts.py
+ * rewrites the name in DIAGRAM_FONTS below as well as in fonts.css, Base.astro and
+ * tokens.css, so the next `npm run diagrams` re-bakes every diagram against the new file.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';

@@ -1,7 +1,10 @@
 /**
  * check-content.mjs — the pre-deploy content gate.
  *
- * Since pushing is the only way to publish, this is the only safety net the site has.
+ * Since pushing is the only way to publish, this is the first of the site's safety nets.
+ * It runs in prebuild, before Astro, as does scripts/render-diagrams.mjs, which stops the
+ * build on a diagram it cannot bake; the render guards and scripts/check-dist.mjs come
+ * after.
  *
  * Strictness is staged through CONTENT_STRICT, a comma-separated list:
  *   deck, tags   an empty deck, or empty tags, becomes an error instead of a warning
@@ -34,7 +37,7 @@ const req = (k, f, m) => (on(k) ? err(f, m) : warn(f, m));
 /**
  * Read a content file, dropping a leading UTF-8 BOM.
  *
- * Windows editors write one by default — PowerShell's own `Out-File -Encoding utf8` does —
+ * Some Windows tools write one — Windows PowerShell's `Out-File -Encoding utf8` does —
  * and it lands in front of the opening `---`. Astro strips it and parses the file normally,
  * so a post carrying one builds and publishes correctly. Without this, every front-matter
  * regex below misses on the very first character and the gate stops the build with
@@ -81,7 +84,8 @@ const realDate = (d) => {
    never after a host name, and never inside fenced code or a code span. A tutorial that
    quotes `curl http://host/uploads/shell.php` is not naming an image this site serves.
    The path is percent-decoded first, as the renderer does. A malformed escape such as
-   `100%.png` makes the renderer throw and the post ship empty, so it is an error here. */
+   `100%.png` makes the renderer throw and the build stop at that page
+   (src/lib/rendered.ts), so it is an error here, where the message can name the path. */
 const listings = new Map();
 function listing(dir) {
   if (!listings.has(dir)) {
@@ -140,13 +144,13 @@ function outsideCode(md) {
 /* ── Sizes the renderer cannot take ──────────────────────────────────────────
    Sätteri's smart punctuation costs bytes x marks within one inline run: a paragraph, a
    list item, a heading. Measured: 85 KB took 1.4 s and 2 GB; from 88 KB of pasted JSON or
-   169 KB of unfenced log the render throws and the post would ship empty; past about
+   169 KB of unfenced log the render throws and the build stops at that page; past about
    41,000 apostrophes in one run Node itself dies with no file named. The same text split
    into paragraphs costs nothing. So each run outside code is held under 16 KB and 400
-   quote, & and ... marks, 28 to 80 times the largest paragraph the corpus has. A table
-   is held under 20,000 cells: Sätteri has no cell limit, and an 18 KB table 3,072 columns
-   wide became a 94 MB page. Code fences are not runs; their long lines are capped in
-   astro.config.mjs instead. */
+   quote, & and ... marks, both far above any paragraph the corpus has. A table is held
+   under 20,000 cells: Sätteri has no cell limit, and an 18 KB table 3,072 columns wide
+   became a 94 MB page. Code fences are not runs; their long lines are left untokenised
+   instead (astro.config.mjs). */
 const RUN_BYTES = 16 * 1024;
 const RUN_MARKS = 400;
 const TABLE_CELLS = 20_000;
@@ -212,11 +216,11 @@ const files = [];
   const d = path.join(SRC, 'content', 'writing');
   /* Underscore files are deliberately NOT skipped, because Astro does not skip them: the
      glob loader in src/content.config.ts matches `*.md`, so a post parked as `_wip.md` is
-     loaded, schema-checked and built into a page like any other. Skipping it here only
-     meant the gate reported "0 errors — passed" and the build then died on
+     loaded, schema-checked and built into a page like any other. Skipping it here would
+     let the gate report "0 errors — passed" and the build then die on
      InvalidContentEntryDataError, which names no field and points at line 0. Checking it
-     costs nothing — there are no underscore files in this directory, and both templates
-     live at content/ top level, outside this glob — and it puts the URL-collision and
+     costs nothing — no file in this directory starts with `_`, and both templates live
+     at content/ top level, outside this glob — and it puts the URL-collision and
      reserved-slug rules onto files that really do become URLs. The supported way to park
      a post is `draft: true`, which every page and the feed honour. */
   if (existsSync(d))
@@ -259,21 +263,21 @@ for (const abs of files) {
   for (const [k, v] of Object.entries(parsed || {})) {
     if (typeof v !== 'string') continue;
     // The key is the author's text, so it is escaped before it becomes a pattern: unescaped,
-    // `c++:` threw a SyntaxError naming no file, and a key like `(x+x+)+y` backtracked for
+    // `c++:` throws a SyntaxError naming no file, and a key like `(x+x+)+y` backtracks for
     // seconds per line.
     const typed = (new RegExp('^' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':[ \\t]*(.*)$', 'm').exec(fm) || [])[1] || '';
     const t = typed.trim();
     if (t.includes('#') && !t.startsWith('"') && !t.startsWith("'") && v.length < t.length - 1)
       warn(rel, `${k} is cut short at a "#": YAML read it as ${JSON.stringify(v)} — quote the whole value to keep the rest`);
   }
-  /* `[ \\t]*`, and neither `\s*` nor the literal `s*` this used to be.
+  /* `[ \\t]*`, and neither `\s*` nor `\\s*`.
      `\s` inside a template literal is not an escape sequence — the backslash is dropped
      and the class becomes a literal `s*`, which works on every value that does not begin
      with an `s` immediately after the colon. Writing it `\\s*` fixes that and breaks
      something worse: `\s` matches newlines, so on a key with nothing after it the class
      runs past the end of the line and `(.*)` captures the NEXT key's line. A blank `deck:`
      then reads as `type:` — non-empty, and the missing-deck warning silently stops firing.
-     Now that blank values are the template's normal state, that is the case to get right.
+     Blank values are the template's normal state, so that is the case to get right.
      A YAML key is separated from its value by spaces or tabs, on its own line. */
   const get = (k) => (new RegExp(`^${k}:[ \\t]*(.*)$`, 'm').exec(fm)?.[1] ?? '').trim().replace(/^["']|["']$/g, '');
 
@@ -294,19 +298,20 @@ for (const abs of files) {
   else seen.set(url, rel);
 
   /* Decks and tags are still being backfilled, so these are staged rather than hard
-     errors — and they have to stay staged now that content/_template.md ships both of
-     them blank, or copying the template would produce a post the gate refuses.
+     errors — and they have to stay staged while content/_template.md ships both of them
+     blank, or copying the template would produce a post the gate refuses.
 
      Each counts three spellings of nothing as the same thing: the key absent, the key
-     with nothing after it (YAML null, which is what the template ships) and an explicitly
-     empty value. The schema absorbs all three to the same parsed value, so a gate that
-     told them apart would be reporting on punctuation rather than on content. */
+     with nothing after it (YAML null) and an explicitly empty value (`deck: ""` and
+     `tags: []`, which is what the template ships). The schema absorbs all three to the
+     same parsed value, so a gate that told them apart would be reporting on punctuation
+     rather than on content. */
   if (!get('deck')) req('deck', rel, 'deck is empty');
 
   /* Tags have two YAML spellings and only one of them is on the key's own line:
      `tags: [a, b]` is visible to get(), a block sequence puts its items on the lines
-     below. Looking only for `tags: []`, as this did, meant a post carrying no `tags:` key
-     at all passed the check in silence — the absent case, not a rare one here. */
+     below. Looking only for `tags: []` would let a post carrying no `tags:` key at all
+     pass the check in silence: the absent case, the first of the three above. */
   const tagsInline = /^tags:[ \t]*(.*)$/m.exec(fm);
   const tagsBlock = /^tags:[ \t]*\r?\n[ \t]*-[ \t]*\S/m.test(fm);
   if (!tagsBlock && !(tagsInline && /[^\s[\],]/.test(tagsInline[1]))) req('tags', rel, 'tags is empty');
@@ -318,24 +323,24 @@ for (const abs of files) {
 /* ────────────────────────────────────────────────────────────────────────────
    content/_template.md — the blank every post is copied from.
 
-   It is checked, but NOT as a post, and the `_` skip in the loop above stays exactly as
-   it is. Every rule up there is a rule about a finished document — a title, a real date,
-   a slug that does not collide with another post's URL — and a template that had to
-   satisfy them would have to carry a title and a date, which is the one thing a blank
-   cannot do. Running the post rules over it would mean the template can only exist in a
-   state that is already a post.
+   It is checked, but NOT as a post: it sits at content/ top level, outside the writing
+   loop above. Every rule in that loop is a rule about a finished document — a title, a
+   real date, a slug that does not collide with another post's URL — and a template that
+   had to satisfy them would have to carry a title and a date, which is the one thing a
+   blank cannot do. Running the post rules over it would mean the template can only
+   exist in a state that is already a post.
 
    What is worth checking is whether it is still a usable blank, and that is three
    questions the post rules never ask. Is it well-formed, i.e. one `key: value` line per
    field. Does it offer every field the schema has — a field added to the schema and not
    to the template is a field no post will ever carry, because the template is where post
    front matter comes from, and nothing else would ever report that. And is every value
-   actually blank: this file shipped `draft: true` and `date: 2026-01-01` until recently,
-   which meant copying it produced a post silently dated to the template's own birthday
-   and silently withheld from the site.
+   actually blank: a template carrying `draft: true` and `date: 2026-01-01` produces
+   posts silently dated to the template's own birthday and silently withheld from the
+   site.
 
    The file is optional the way content/code is: absent, this block does nothing, so a
-   checkout without it fails no differently than before.
+   checkout without it is checked exactly as if this block were not here.
    ──────────────────────────────────────────────────────────────────────────── */
 
 /* The field list of the `writing` collection in src/content.config.ts, duplicated here on
@@ -373,9 +378,9 @@ const WRITING_FIELDS = ['title', 'titleKo', 'date', 'deck', 'type', 'tags', 'dra
         if (missing.length) err(rel, `front matter is missing ${missing.join(', ')} — every field the schema offers belongs here, blank`);
         if (extra.length) err(rel, `front matter offers ${extra.join(', ')}, which the writing schema does not have`);
         /* A warning, not an error. A value left here is inherited unread by every post
-           copied from the template — which is how `draft: true` once produced posts that
-           built clean and were nowhere on the site — but it is also how an author keeps a
-           default they actually want. Say it on every build; do not stop the deploy. */
+           copied from the template — a `draft: true` left in it produces posts that build
+           clean and are nowhere on the site — but it is also how an author keeps a default
+           they actually want. Say it on every build; do not stop the deploy. */
         if (filled.length) warn(rel, `a value is left in ${filled.join(', ')} — every post copied from this template inherits it unread`);
       }
     }
@@ -385,18 +390,18 @@ const WRITING_FIELDS = ['title', 'titleKo', 'date', 'deck', 'type', 'tags', 'dra
 /* ────────────────────────────────────────────────────────────────────────────
    content/code — the Code index.
 
-   A collection this script does not know about is not "probably fine": the gate is the
-   only thing standing between a push and the live site, so an unlisted directory is
-   content that ships unchecked. Astro's own schema in src/content.config.ts already
-   rejects a malformed `url`, a missing `name` and a non-integer `order` — but only at
-   build time, and this script runs in `prebuild`, before that. What the schema cannot see
-   at all is an empty body, because the body is where the description lives here, and two
-   projects claiming the same position in a hand-ranked list.
+   A collection this script does not know about is not "probably fine": an unlisted
+   directory is content that ships without any of the checks in this file. Astro's own
+   schema in src/content.config.ts already rejects a malformed `url`, a missing `name`
+   and a non-integer `order` — but only at build time, and this script runs in
+   `prebuild`, before that. What the schema cannot see at all is an empty body, because
+   the body is where the description lives here, and two projects claiming the same
+   position in a hand-ranked list.
 
    The directory is optional on purpose: absent, the block does nothing, so a checkout
-   without it fails no differently than before. `files.length === 0` above is the
-   emptiness alarm, and it deliberately still counts only content/writing — seven project
-   stubs are not evidence that the prose survived the checkout.
+   without it is checked exactly as if this block were not here. `files.length === 0`
+   above is the emptiness alarm, and it deliberately counts only content/writing — a
+   handful of project stubs is not evidence that the prose survived the checkout.
    ──────────────────────────────────────────────────────────────────────────── */
 const codeFiles = [];
 {
@@ -407,7 +412,7 @@ const codeFiles = [];
     for (const f of await readdir(d)) if (f.endsWith('.md')) codeFiles.push(path.join(d, f));
 }
 
-/** The same test src/content.config.ts applies, so the two cannot disagree about a link. */
+/** The same test src/content.config.ts applies, kept in step with it by hand. */
 const isProjectUrl = (v) => {
   if (v.startsWith('/')) return v.endsWith('/');
   try {
