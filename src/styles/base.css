@@ -1,23 +1,27 @@
-/* Baseline typography. Layout specifics live with each template. */
+/* Baseline typography, the pieces every route shares (the shell, the header and footer
+   bars), and the code plates and diagrams any Markdown page can carry. Page layout lives
+   with each template. */
 *, *::before, *::after { box-sizing: border-box; }
 
 /* `scrollbar-gutter: stable` is load-bearing, not a polish detail: it is half of what
    makes the header sit in the same place on every route.
 
    The header pads itself with max(--root-pad, (100% - --w-page) / 2), and that `100%` is
-   the body's content width, which a classic scrollbar narrows by 15px. /papers/, /talk/,
-   /code/ and /404 are short enough not to scroll; / , /writing/ and all 30 articles do.
-   So the bar was centring against two different widths and landed 7.5px apart between a
-   scrolling page and a non-scrolling one — measured 338 against 330.5 of padding at a
-   1700px window, at every width, which is visible the moment you click from /papers/ to
-   /writing/. Reserving the gutter everywhere makes the two cases one case: every page now
-   lays out in the same 1685px, scrollbar painted or not.
+   the body's content width, which a classic scrollbar narrows by 15px. /papers/, /talk/
+   and /404 are short enough never to scroll; /writing/ and the long articles scroll at
+   any common window height; /, /code/ and the short articles scroll or not depending on
+   the window's height. Without the reserved gutter the
+   bar centres against two different widths and lands 7.5px apart between a scrolling
+   page and a non-scrolling one — 338 against 330.5 of padding at a 1700px window, which
+   is visible the moment you click from /papers/ to /writing/. Reserving the gutter
+   everywhere makes the two cases one case: every page lays out in the same 1685px,
+   scrollbar painted or not.
 
-   What it costs. The four short pages give up 15px of usable width and their content
-   steps 7.5px left — which is the point, since that is the step that puts them on the
-   same edge as everything else. It reserves nothing where the scrollbar is an overlay
-   (every touch browser, and macOS unless "always show" is set), so no mobile width pays
-   for it. And it cannot create horizontal overflow: it narrows the ICB, and every box on
+   What it costs. A short page gives up 15px of usable width and its content steps 7.5px
+   left — which is the point, since that is the step that puts it on the same edge as
+   everything else. It reserves nothing where the scrollbar is an overlay (every touch
+   browser, and macOS unless "always show" is set), so no mobile width pays for it.
+   And it cannot create horizontal overflow: it narrows the ICB, and every box on
    this site is sized from that width rather than from 100vw — verified 0px of
    documentElement.scrollWidth overhang on all seven routes at 320 through 2560.
 
@@ -33,9 +37,9 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-body);
   line-height: var(--lh-large);
-  /* font-optical-sizing was here for Newsreader's opsz axis. Lora has no opsz axis and
-     neither does Pretendard, so the declaration is now provably inert - and `auto` is
-     the initial value in any case. Removed rather than left implying an axis exists. */
+  /* No font-optical-sizing: neither Lora nor Pretendard has an opsz axis, so it would be
+     inert - and `auto` is the initial value in any case. Left out rather than implying an
+     axis exists. */
   -webkit-font-smoothing: antialiased;
 }
 
@@ -54,54 +58,42 @@ h5 { font-size: var(--fs-h5); line-height: var(--lh-medium); }
 h6 { font-size: var(--fs-h6); line-height: var(--lh-medium); }
 
 p { margin: 0; }
-/* See --sp-para in tokens.css: 0.7em, the reference's own paragraph gap, replacing the
-   flat 24px this held. Written as a top margin on the second of a pair rather than as a
+/* See --sp-para in tokens.css: 0.7em, the reference's own paragraph gap, rather than the
+   24px of --sp-24. Written as a top margin on the second of a pair rather than as a
    bottom margin on every paragraph, so a paragraph that ends a block contributes nothing
    to the gap below it and the block rhythm stays the one thing that sets it. */
 p + p { margin-block-start: var(--sp-para); }
 
-/* Prose links carry no colour: weight and underline only. */
-/* Links are crimson at the weight of the text around them, and carry no rule at rest —
-   the reference's own treatment, measured on its article pages: rgb(160,32,32), weight
-   400 against a 400 paragraph, text-decoration none. What stood here was weight 700 plus
-   an underline, which made a link a different piece of type from the sentence holding it.
+/* Links are crimson at the weight of the text around them, and carry no rule at rest or on
+   hover — the reference's own treatment, measured on its article pages: rgb(160,32,32),
+   weight 400 against a 400 paragraph, text-decoration none. Weight 700 plus an underline
+   would make a link a different piece of type from the sentence holding it.
 
    One thing to know about this, stated rather than discovered later. Colour alone is a
    weaker signal than an underline, and WCAG's technique for colour-only links wants 3:1
    between the link and the text beside it. --crimson on this site's black body measures
    2.81:1 — under that line, though the same crimson is 7.25:1 against the page and so
-   never hard to read. The reference is further under it at 2.06:1. What closes the gap
-   There is deliberately no hover or focus rule here to close that gap, because the
-   reference has none either: driven over CDP on its own article page, its body links
-   compute text-decoration none at rest AND on hover, with no background, no border, and
-   zero `a:hover` rules anywhere in its stylesheets. An earlier version of this file added
-   an animated rule on hover on the assumption that it did; that was measured from the
-   rest state alone and was wrong.
+   never hard to read. The reference is further under it at 2.06:1. Nothing here closes
+   the gap at rest, by design: the hover step below lifts a hovered prose link to 3.84:1,
+   and keyboard users get the global :focus-visible ring near the top of this file, which
+   rings these links like every other control on the site. The 2.81:1 at rest is the
+   accepted cost for a reader who only looks.
 
-   Keyboard users are still served: the global :focus-visible ring near the top of this
-   file rings these links like every other control on the site. The 2.81:1 is the honest
-   cost of the change for a reader who only looks. */
+   Because `font-weight` is `inherit`, a link in a heading takes the heading's own 500
+   with no rule of its own. */
 a { color: var(--crimson); font-weight: inherit; text-decoration: none; }
 
-/* The reference does change on hover, and the earlier note here said it did not. That was
-   wrong twice over: the first probe never hovered at all — the page sets
-   `scroll-behavior: smooth`, so the rect was read before the scroll finished and the
-   pointer landed on nothing, which is also why `document.querySelectorAll(':hover')` came
-   back empty and the reading looked like a null result. Driven properly, the chain ends in
-   the <a> and the colour moves rgb(160,32,32) -> rgb(192,48,48).
+/* Hover is a colour step, the reference's own: driven over CDP on its article page, its
+   body links move rgb(160,32,32) -> rgb(192,48,48), with no rule and no background.
+   --crimson-lift is the same step applied to --crimson (see tokens.css).
 
-   So: colour only, still no rule and no background, and no transition — every other colour
-   change on this site is instant. Gated on a real pointer, because a bare :hover latches
-   after a tap and would leave the last link touched sitting in the hover colour. Keyboard
-   users get the global :focus-visible ring rather than this, which is the stronger signal
-   of the two. */
+   So: colour only, and no transition — the step is instant, as the header nav's colour
+   step is. Gated on a real pointer, because a bare :hover latches after a tap and would
+   leave the last link touched sitting in the hover colour. Keyboard users get the global
+   :focus-visible ring rather than this, which is the stronger signal of the two. */
 @media (hover: hover) {
   :is(.prose, .about) a:hover { color: var(--crimson-lift); }
 }
-
-/* The rule that used to sit here held linked headings at their own 500 against the
-   global `a { font-weight: 700 }`. That global is `inherit` now, so a link in a heading
-   already takes the heading's weight and the override has nothing left to override. */
 
 :focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: 2px; }
 
@@ -110,14 +102,15 @@ a { color: var(--crimson); font-weight: inherit; text-decoration: none; }
   background: var(--page-bg); padding: var(--sp-30) var(--sp-40);
   border: 2px solid var(--ppc-ui); }
 
-/* Read by assistive tech, drawn nowhere. Two callers, and only one of them is new:
-   the code plate's copy control announces its result through a .sr-only live region,
-   and the Markdown processor already emits <h3 class="sr-only" id="footnote-label">
-   Footnotes</h3> above the footnote list. With no definition in the sheet that second
-   one has been shipping as a visible 24.5px English headline in the middle of a Korean
-   article. `clip-path` alone would do it in every engine this site targets; the width,
-   height and margin are the belt that keeps the box from being a focus-scroll target.
-   Not `display: none`, which would take it out of the accessibility tree as well. */
+/* Read by assistive tech, drawn nowhere. The callers: the <h1> of each top-level page
+   (About, Papers, Talk, Code, Writing); the comma between the byline's name and date;
+   the live region through which the code plate's copy control announces its result;
+   and the <h2 class="sr-only" id="footnote-label">Footnotes</h2> the Markdown
+   processor emits above the footnote list, which without this rule would draw as a
+   visible English headline in the middle of a Korean article. `clip-path` alone would do it in
+   every engine this site targets; the width, height and margin are the belt that keeps
+   the box from being a focus-scroll target. Not `display: none`, which would take it out
+   of the accessibility tree as well. */
 .sr-only {
   position: absolute;
   inline-size: 1px;
@@ -131,14 +124,13 @@ a { color: var(--crimson); font-weight: inherit; text-decoration: none; }
 }
 
 /* Shell */
-/* box-sizing is border-box, so `max-width: 728px` plus the then 32px maximum of
-   --root-pad left a 664px content box — the measure of the day was never actually reached,
-   and on the index the rail then ate another 96px, leaving a 568px title column. The
-   shell is sized to the page box (rail + gap + measure) with the padding added on top
-   of it, which is why --root-pad (now 16→24px) cannot shrink the measure however it is
-   retuned — and, by the same token, cannot shrink the side gutter either: it lives
-   inside this max-width, so it moves where the hairline below ends, not where the text
-   starts. See the --w-content note in tokens.css for the cancellation. */
+/* The shell is sized to the page box (rail + gap + measure) with the padding added on top
+   of it. box-sizing is border-box, so a max-width of the page box alone would take
+   --root-pad out of the measure; added on top, --root-pad cannot shrink the measure however
+   it is tuned — and, by the same token, cannot shrink the side gutter either: it lives
+   inside this max-width, so it moves only the edge of main's own box, which paints
+   nothing, not where the text starts. See the --w-content note in tokens.css for the
+   cancellation. */
 main {
   max-width: calc(var(--w-page) + 2 * var(--root-pad));
   margin-inline: auto;
@@ -146,64 +138,63 @@ main {
 }
 
 /* The header is full-bleed, `main` is not.
-   Both used to share the rule above, which capped the header at the same width and left
-   its bottom rule floating in from each edge — a short line across the middle of the
-   screen rather than a boundary. The box now spans the viewport so the rule and the
-   shadow reach both edges, while the padding reproduces what the shared max-width used
-   to do: above `--w-page` + 2 × `--root-pad` it resolves to (100% − --w-page) / 2 and
-   centres a --w-page content box, below it falls back to --root-pad.
+   Capped at main's width, the header's bottom rule would float in from each edge — a
+   short line across the middle of the screen rather than a boundary. The box spans the
+   viewport so the rule and the shadow reach both edges, while the padding reproduces
+   main's max-width: above `--w-page` + 2 × `--root-pad` it resolves to
+   (100% − --w-page) / 2 and centres a --w-page content box, below it falls back to
+   --root-pad.
 
    THE CONTRACT IS THAT THIS BAR NEVER MOVES. Same left edge, same right edge, symmetric
    padding, on every route and at every width — that is what a reader crossing from
    /papers/ to an article is entitled to, and it is the only thing this expression owes.
-   Two things used to break it and both are gone:
+   Two things can break it, and both are handled:
 
-     - the scrollbar. `100%` is the body's content width, so the bar centred against 1700
-       on a short page and 1685 on a scrolling one. `scrollbar-gutter: stable` at the top
-       of this file reserves the gutter on every page, so there is one width now.
-     - the article template. It restated this padding against its own --page-left, so the
-       whole bar slid ~50px right and went asymmetric (280 left / 181 right at 1500)
-       inside the 1440–1584 band, on article pages only. That override is deleted.
+     - the scrollbar. `100%` is the body's content width, so without a reserved gutter
+       the bar centres against 1700 on a short page and 1685 on a scrolling one.
+       `scrollbar-gutter: stable` at the top of this file reserves the gutter on every
+       page, so there is one width.
+     - a page restating this padding. The article template must not restate it against
+       its own --page-left: that slides the whole bar ~50px right and makes it asymmetric
+       (280 left / 181 right at 1500) inside the 1440–1584 band, on article pages only.
 
-   An earlier version of this note promised something stronger and no longer true: that
-   the wordmark always sits on `main`'s left edge. It cannot, because between 1440 and
-   1584 an article pushes `main` right to seat the contents rail. Only `main` moves now;
-   the bar stays where it is, and the two edges part by 79.5px at a 1440px window, 49.5
-   at 1500, 7.5 at 1584 and 0.00 everywhere else. That was the trade the fixed bar was
-   chosen over the shared edge for. See the "which presentation" block in
-   src/pages/writing/[year]/[slug].astro. */
+   What the bar does not promise is that the wordmark always sits on `main`'s left edge.
+   It cannot, because between 1440 and 1584 an article pushes `main` right to seat the
+   contents rail. Only `main` moves; the bar stays where it is, and the two edges part by
+   79.5px at a 1440px window, 49.5 at 1500, 7.5 at 1584, and 0.00 from a 1599px window up
+   and below 1440. That is the trade the fixed bar was chosen over the shared edge for.
+   See the "which presentation" block in src/pages/writing/[year]/[slug].astro. */
 /* Height follows the reference: 16px of padding above and below a single ~27px row, for a
-   60px bar. The old 48/16 split made it 88px, which read as a section of the page rather
-   than a rule across the top of it.
+   60px bar. Padded 48px above instead of 16 it would pass 90px, which reads as a section
+   of the page rather than a rule across the top of it.
 
    That row is ONE line box shared by two type sizes, and the line-height below is what
    makes it one. The reference declares `line-height: 170%` on body, which computes to a
    fixed 27.2px at the declaring element and inherits as a LENGTH, so its 24px title and
    its 19.2px nav sit in the same 27.2px row and the bar is 16 + 27.2 + 16 + 1 = 60.2px.
    Our --lh-large is a ratio: it resolves per element, the larger slot then sets the row,
-   and a 1.25x title would have pushed this bar to 70px. calc() against --fs-body
-   reproduces the reference's inheritance instead — 18.88 x 1.4 = 26.4px at 1440, for a
-   59.4px bar.
+   and a 1.25x title would push this bar to about 71px. calc() against --fs-nav
+   reproduces the reference's inheritance instead — 19.07 x 1.4 = 26.70px at a 1440px
+   window, for a 59.70px bar.
 
-   align-items is centre rather than baseline, and that is deliberate: both slots now have
+   align-items is centre rather than baseline, and that is deliberate: both slots have
    the same line box, so centre, start and stretch are the same pixel, while baseline
    would step one of them off the row. The reference does not baseline-align either — its
    title and nav are floats in a shared line box, and their baselines are measurably 1.5px
    apart.
 
-   row-gap is smaller than column-gap because the wrapped state is a real state here (the
-   nav drops under the slot below ~24em) and it should not inherit the desktop gap. See
-   the note on the nav gap below.
+   row-gap is smaller than column-gap because the wrapped state is a real state here
+   (below 450px the nav always takes a row of its own; see the max-width: 449px query
+   below) and it should not inherit the desktop gap. See the note on the nav gap below.
 
    The rule itself is the Gazette's, measured off news.harvard.edu/gazette: 1px solid
    #a51c30 — the same crimson this site already carries as its brand, and the Gazette's
    masthead ground is rgb(255,251,244), the identical cream to --page-bg here. It is
    --crimson rather than --ppc-ui on purpose: --ppc-ui is the per-section token, and the
-   Gazette's rule does not change colour by section. An earlier version of this note said
-   --ppc-ui "turns blue on /code/ and ochre on /talk/"; measured on the built output it
-   does not — only the article template passes `section`, so every other route renders
-   is-slate and --ppc-ui there is slate, which is also the resting nav colour. Even if
-   those pages did pass one, a header accent that changes per section is the thing this
+   Gazette's rule does not change colour by section. Nor would --ppc-ui vary here the way
+   its name suggests: only the article template passes `section`, so every other route
+   renders is-slate and --ppc-ui there is slate, which is also the resting nav colour. Even
+   if those pages did pass one, a header accent that changes per section is the thing this
    line is avoiding. The hover rule further down follows the same reasoning. */
 body > header { padding-block: var(--sp-40);
   padding-inline: max(var(--root-pad), calc((100% - var(--w-page)) / 2));
@@ -217,14 +208,14 @@ main { padding-block: var(--sp-64) var(--sp-120); }
 
 /* Site footer. No rule above it and no pushing to the bottom of the viewport.
 
-   Both were tried and both were wrong. The rule repeated a mark the crimson line under the
-   header already owns, on a copyright notice that does not carry that weight. The bottom
-   pinning needed `body` to be a flex column, and that broke /writing/ outright: `main`
+   Neither works here. A rule would repeat a mark the crimson line under the header
+   already owns, on a copyright notice that does not carry that weight. Pinning it to the
+   bottom needs `body` to be a flex column, and that breaks /writing/ outright: `main`
    carries `margin-inline: auto`, an auto cross-axis margin cancels `align-items: stretch`,
-   so `main` collapsed to fit-content — and `.index` inside it is a `container-type:
-   inline-size` box, which may not size from its contents, so it computed to width 0 and the
-   entry titles wrapped one word per line. On a short page the notice simply follows the
-   content now, which is what the reference does too.
+   so `main` collapses to fit-content — and `.index` inside it is a `container-type:
+   inline-size` box, which may not size from its contents, so it computes to width 0 and
+   the entry titles wrap one word per line. On a short page the notice simply follows the
+   content, which is what the reference does too.
 
    Padding is --sp-40 rather than --sp-48: one line of --fs-small needs air, not a band. */
 .site-foot {
@@ -247,12 +238,13 @@ main { padding-block: var(--sp-64) var(--sp-120); }
    header nav's, derived from the same token so the two rows of links stay in step. */
 .site-foot p { margin: 0; }
 .site-foot__social { display: flex; flex-wrap: wrap; column-gap: calc(var(--fs-nav) * 0.8); }
-/* Size and case come back from .site-foot, not from the global `nav a` two rules up.
-   That selector is unscoped — it reaches every <nav> on the site — so these links were
-   arriving at --fs-nav (19.2px) in small-caps beside a 14px copyright line. Overridden
-   here rather than by scoping `nav a` to the header, because .toc-rail reads its
-   `text-decoration: none`, and narrowing it would underline every rail link at rest. small-caps is dropped with the size: at one shared font-size its
-   lowercase would still draw shorter than the line it is meant to match. */
+/* Size and case come back from .site-foot, not from the global `nav a` rule in the
+   page-name and navigation section below. That selector is unscoped — it reaches every
+   <nav> on the site — so without this these links would arrive at --fs-nav (19.2px) in
+   small-caps beside a 14px copyright line. Each nav it reaches restates what it needs:
+   these links here, and .toc-rail__link in the article template. small-caps is dropped
+   with the size: at one shared font-size its lowercase would still draw shorter than the
+   line it is meant to match. */
 .site-foot__social a {
   color: inherit;
   font-size: inherit;
@@ -261,17 +253,15 @@ main { padding-block: var(--sp-64) var(--sp-120); }
   font-weight: 400;
   text-decoration: none;
 }
-/* The rule under these is the header's wipe now, drawn by .hover-wipe further down. This
-   link is the one of the seven that cannot carry that class — it is written in
-   Base.astro — so the shared rule names the selector instead of the markup carrying it.
-   --wipe-y pulls the rule up to where the auto underline used to sit. Measured on the live
-   footer at 1700: the old 1px underline's top row was 801.20 and the unlifted background's
-   was 802.20, so the lift is one pixel, written as 0.07em so it tracks --fs-small's clamp
-   instead of drifting against it down to 11px. (0.21em was the first guess, from the
-   padding box being 4px under the baseline; it put the rule two pixels too high.)
-   The colour step stays, and moves inside the pointer gate together with the rule: this
-   is the header's "the item takes the accent" gesture, and a colour that latches after a
-   tap on a touch screen is exactly the defect the gate exists for. */
+/* The rule under these is the header nav's gesture, drawn by the wipe rule further down
+   (see "The wipe"). --wipe-y lifts it one pixel, written as 0.07em so it tracks
+   --fs-small's clamp instead of drifting against it down to 11px. Measured at 1700, the
+   lifted rule's top row is still two pixels under the row a 1px auto underline would
+   take: these links are flex items, so the box the rule hangs from ends at the bottom of
+   the line box rather than at the bottom of the glyphs.
+   The colour step sits inside the pointer gate together with the rule: this is the
+   header's "the item takes the accent" gesture, and a colour that latches after a tap on
+   a touch screen is exactly the defect the gate exists for. */
 .site-foot__social a { --wipe-y: calc(100% - 0.07em); }
 .site-foot__social a:focus-visible { color: var(--crimson-dark); background-size: 100% 2px; }
 
@@ -280,52 +270,53 @@ main { padding-block: var(--sp-64) var(--sp-120); }
 }
 
 /* Page name and navigation.
-   One family, one weight, one small-caps texture — and TWO sizes, which is the half that
-   was wrong here. The note this replaces claimed the reference "sets its title and its nav
-   identically - 19.2px, weight 400, letter-spacing normal". Measured, it does not: the
-   title is 24px with .15em (3.6px) of tracking and the nav is 19.2px with none — a 1.25x
-   step, with the tracking on the title alone. Flattening the two removed the only size
-   contrast in the bar and left the left slot at 42px of ink against the reference's 108;
-   a quarter of that reference width is letter-spacing. 1.25x of --fs-body lands 23.6px at
-   1440 and 20.2px at 375, against the reference's flat 24 at both.
+   One family, one weight, one small-caps texture — and TWO sizes. The reference does not
+   set its title and its nav identically: measured, the title is 24px with .15em (3.6px)
+   of tracking and the nav is 19.2px with none — a 1.25x step, with the tracking on the
+   title alone. Flattening the two would remove the only size contrast in the bar and
+   leave the left slot at 42px of ink against the reference's 108; a quarter of that
+   reference width is letter-spacing. 1.25x of --fs-nav lands 23.8px at a 1440px window
+   and 20.2px on a 375px phone, against the reference's flat 24 at both.
 
-   The tracked size is written as calc(--fs-body * 1.25) rather than picked off the heading
-   ladder: --fs-h4 is close at 1440 but the ladder's steps are not parallel, so it drifts
-   to 1.21x at 375. The relationship is the thing being matched, not a number.
+   The tracked size is written as calc(--fs-nav * 1.25) rather than picked off the
+   heading ladder: the ladder's steps are not parallel to --fs-nav, so no step holds
+   1.25x across widths — --fs-h3 is 1.28x of it at 1440 and 1.31x at 375, --fs-h4 1.15x
+   and 1.21x. The relationship is the thing being matched, not a number.
 
-   Lora ships no `smcp`, so the browser synthesises these, and an earlier note refused
-   small-caps for that reason. The stroke argument behind that refusal does not survive
-   measurement: at 400 Lora's 'o' is 2.69 contrast with a .0380em thin stroke, which at
-   19px is a 0.72px hairline, and the reference ships exactly this - synthesised Lora
-   small-caps - at exactly this size. Synthesis alone was never a reason; it is how
-   small-caps reach the screen on most faces. Lora has no opsz axis, so one measurement
-   covers every size here. */
+   Lora ships no `smcp`, so the browser synthesises these. That is not a reason to avoid
+   them: synthesis is how small-caps reach the screen on most faces, and the stroke holds
+   up — at 400 Lora's 'o' is 2.69 contrast with a .0380em thin stroke, which at 19px is a
+   0.72px hairline, and the reference ships exactly this - synthesised Lora small-caps -
+   at exactly this size. Lora has no opsz axis, so one measurement covers every size
+   here. */
 body > header > .page-name, nav a { font-family: var(--font-body); font-size: var(--fs-nav);
   font-variant-caps: small-caps; letter-spacing: normal; font-weight: 400;
   text-transform: none; text-decoration: none; }
 body > header > .page-name { font-size: calc(var(--fs-nav) * 1.25); letter-spacing: 0.15em; }
 nav { display: flex; gap: var(--sp-50); flex-wrap: wrap; }
 /* .8em is the reference's own nav spacing (`div.links a { margin-right: .8em }`), and as
-   an em it tracks the type instead of drifting against it: 15.1px at 1440, 12.9px at 375,
-   where the site gap's flat 24px was 1.27em of this type at 1440 and 1.49em at 375 —
-   loosest exactly where the row is tightest. Scoped to this header rather than edited into
-   the rule above, because `nav` is an element selector and the article page has one more
-   nav, .toc-rail, which escapes it with display:block. */
+   an em it tracks the type instead of drifting against it: 15.3px at a 1440px window,
+   12.9px at 375, where the flat 24px gap of `nav` would be 1.26em of this type at 1440
+   and 1.49em at 375 — loosest exactly where the row is tightest. Scoped to this header
+   rather than edited into the rule above, because `nav` is an element selector and it
+   reaches the other navs too: the footer's .site-foot__social, and on an article the
+   .toc-rail, which escapes it with display: block. */
 /* The reference's own spacing, .8em, but resolved against the size it is .8em OF.
-   Written as `0.8em` here it resolved against <nav>'s inherited font-size, which is body's
-   16px because --fs-nav is set on `nav a` and not on `nav` — so the gap sat at 12.8px while
-   the links beside it rendered 19.07px, and the measured 0.671em read as cramped. The
-   reference puts its .8em on the link itself (`div.links a { margin-right: .8em }`) at
-   19.2px, which is 15.36px; calc against the token reproduces that at every width. */
+   Written as `0.8em` here it would resolve against <nav>'s inherited font-size, which is
+   body's 16px because --fs-nav is set on `nav a` and not on `nav` — a 12.8px gap beside
+   19px links, 0.67em of their type, which reads as cramped. The reference puts its .8em
+   on the link itself (`div.links a { margin-right: .8em }`) at 19.2px, which is 15.36px;
+   calc against the token keeps that ratio at every width. */
 body > header nav { column-gap: calc(var(--fs-nav) * 0.8); row-gap: calc(var(--fs-nav) * 0.4); }
 
-/* The bar's height must not depend on which page is open, and between 375 and 430px it did.
-   The page name and the nav are two flex items in one wrapping row, so whether the nav folds
-   to a second line is decided by how wide the name is — and the name changes per route
-   ("Code" against "Hyukjin An" is 6 characters and about 80px). Measured across all seven
-   routes: identical two-row bars at 320 and 360, identical one-row bars from 450 up, and a
-   375-430 band where the short names fit beside the nav and the long ones do not — 55.55px
-   against 88.81px depending on the page.
+/* The bar's height must not depend on which page is open, and between 375 and 430px,
+   left to wrap on its own, it does. The page name and the nav are two flex items in one
+   wrapping row, so whether the nav folds to a second line is decided by how wide the name
+   is — and the name changes per route ("Code" against "Hyukjin An" is 6 characters and
+   about 80px). Measured across all seven routes without this query: identical two-row
+   bars at 320 and 360, identical one-row bars from 450 up, and a 375-430 band where the
+   short names fit beside the nav and the long ones do not — 55.55px against 88.81px
+   depending on the page.
 
    Below the width where the LONGEST name still fits, every route stacks. The nav taking a
    full row is not a fallback here; it is the narrow layout, and applying it to all seven is
@@ -337,16 +328,16 @@ body > header nav { column-gap: calc(var(--fs-nav) * 0.8); row-gap: calc(var(--f
 nav a { color: var(--page-meta); }
 
 /* The current page is named in the left slot, so the nav does not mark it a second time.
-   What used to be here — a 4px rule in --ppc-ui plus a colour change, laid down
-   transparent on every item — fails on four counts. It is a duplicate of a signal the
-   slot now carries; the reference marks nothing in its nav for exactly that reason (all
-   five of its links measure identical on the page they point at). It occupied the bottom
-   edge the hover rule needs, so the current item would have grown a 2px rule on top of a
-   4px one. Its 4px + 2px of padding was 6px of header height on every item on every page,
-   which is most of what put this bar over 60px. And --ppc-ui resolves to slate on five of
-   six routes, i.e. it drew the "you are here" mark in precisely the colour of the links
-   that are not current. aria-current stays in the markup: it is the programmatic state,
-   and it is not the same question as whether the state is painted twice. */
+   A painted mark — a 4px rule in --ppc-ui plus a colour change, laid down transparent on
+   every item — fails on four counts. It duplicates a signal the slot already carries; the
+   reference marks nothing in its nav for exactly that reason (all five of its links
+   measure identical on the page they point at). It takes the bottom edge the hover rule
+   needs, so the current item would grow a 2px rule on top of a 4px one. Its 4px + 2px of
+   padding is 6px of header height on every item on every page, enough to put this bar
+   over 60px. And --ppc-ui resolves to slate on every route but the articles, i.e. it
+   would draw the "you are here" mark in precisely the colour of the links that are not
+   current. aria-current stays in the markup: it is the programmatic state, and it is not
+   the same question as whether the state is painted twice. */
 
 /* Hover and focus: a 2px rule that grows out of the centre — the reference's one piece of
    motion, and the detail that reads first in a side-by-side. transform-origin is left at
@@ -355,22 +346,23 @@ nav a { color: var(--page-meta); }
    decision, so this goes to a full 1.
 
    It costs nothing in layout: absolutely positioned against the padding box, which with
-   the shared line box above puts it 4.3px under the baseline at 1440 — the reference's is
-   4px under, crossing the descenders of "Writing" by about a pixel. It is a rule through
-   the type, not a clearance underline, and both are that on purpose.
+   the shared line box above puts its top edge 4.7px under the baseline at a 1440px
+   window — the reference's is 4px under, crossing the descenders of "Writing" by about a
+   pixel. It is a rule through the type, not a clearance underline, and both are that on
+   purpose.
 
    --crimson rather than --ppc-ui, for the reason given above the header rule: this bar's
    accent is the brand crimson at every route, and --ppc-ui here would be the resting nav
-   grey on five of six of them. The reference's own rule (#c44) is likewise a step off its
-   link red, not the link colour itself.
+   grey on every route but the articles. The reference's own rule (#c44) is likewise a
+   step off its link red, not the link colour itself.
 
    Reduced motion needs nothing here. The guard at the foot of this file already selects
    *, *::before, *::after — the transition degrades to an instant appear, which is the
    right outcome. Do not add a second query.
 
    Focus keeps the global 3px outline as well; the rule is additive, not a replacement.
-   On its own it would be 127px² of indicator against the ~383px² WCAG 2.4.13 asks for,
-   and a keyboard user could not tell focus from hover. */
+   On its own it would be about 128px² of indicator on "Writing", roughly a third of the
+   area WCAG 2.4.13 asks for, and a keyboard user could not tell focus from hover. */
 body > header nav a { position: relative; }
 body > header nav a::before {
   content: ''; position: absolute; inset-inline: 0; bottom: 0; block-size: 2px;
@@ -391,88 +383,61 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
   body > header nav a:hover::before { transform: scaleX(1); }
 }
 
-/* --- The same wipe, everywhere else a rule appears on hover --------------------
-   Seven more links grow an underline on hover and used to do it with
-   `text-decoration: underline`, which has no in-between state to animate: the rule is
-   either absent or whole. This gives them the header's gesture -- a 2px crimson rule
-   opening from the centre over 0.3s -- without giving them the header's technique.
+/* --- The wipe: the header's rule, drawn as a background -----------------------------
+   The footer's profile links take the header nav's gesture -- a 2px crimson rule opening
+   from the centre over 0.3s -- without taking the header's technique. They are the only
+   links outside the header that take this animated rule: body links step colour instead
+   (see the `a` rules near the top of this file), the way the reference's body links do.
+   `text-decoration: underline` cannot do this, because it has no in-between state to
+   animate: the rule is either absent or whole.
 
-   The header draws its rule with an absolutely positioned ::before at `bottom: 0`. That
-   is right for a nav item and wrong for most of these, because an absolute bar is one
-   rectangle spanning the element's whole padding box. Four of the six wrap in the corpus
-   as it stands -- entry titles on the Writing index (2 lines at 375), rail entries (2 at
-   1440, 4 once hover lifts the clamp), inline contents
-   headings (3 at 320), project names on /code/ (2 lines from 360 down: one name at 360,
-   two at 320, three at 280) -- and on a wrapped link that rectangle lands under the last
-   line only at the width of the widest, reading as a bottom border rather than an
-   underline. The project names are the narrow escape: at 375 the longest still fits, by
-   6.45px -- 321.55px in a 328px column -- and it is the 360px column, 313px wide, that
-   takes it to two lines. One is worse than wrapping: .toc-rail__link is a block box that
-   fills its column, so the bar would be 265px wide under 87px of text even on a single
-   line.
+   The header draws its rule with an absolutely positioned ::before at `bottom: 0`, which
+   is one rectangle spanning the element's whole padding box. That is right for a nav
+   item and wrong for any inline link that wraps: the rectangle lands under the last line
+   only, at the width of the widest, and reads as a bottom border rather than an
+   underline. A background gradient sized 0% -> 100% fails the same way by default,
+   because the background positioning area of an inline box is the union of its
+   fragments; `box-decoration-break: clone` hands every line fragment its own copy of the
+   background, each opening from its own centre. The footer's links are flex items, so
+   each is one block box and the clone has nothing to split, but it keeps the rule right
+   on any inline link that takes it.
 
-   A background gradient sized 0% -> 100% fails the same way by default, because the
-   background positioning area of an inline box is the union of its fragments. What fixes
-   it is `box-decoration-break: clone`, which hands every line fragment its own copy of
-   the background, each opening from its own centre. Measured on this site's own worst
-   cases: 2 rules of 186 and 235px on a two-line entry title, 3 of 221/231/156 on a
-   three-line contents heading, 4 on a rail entry lifted out of its clamp -- one per line,
-   each the width of its own line. The two blockified sites get one inline wrapper in the
-   markup so they have fragments to clone, and the wrappers cost nothing measurable --
-   clamp, ellipsis, the rail's clamp-lift, the scroll spy's querySelectorAll and every
-   layout figure come out unchanged.
-
-   On a single-line inline link the two techniques are pixel-identical, which is worth
-   knowing before anyone tries to unify them: the absolute bar's containing block and the
-   background positioning area are both the fragment's padding box. Both drawn on the same
-   project name and scanned out of the captured frames, they occupy rows 148.88 and 149.88,
-   x 330.50, width 104 -- the same pixels. So the header keeps its ::before rather than
-   being folded in here: converting it would trade a compositor-driven transform for a
-   repainting background animation to save one declaration, and the header is the reference
-   everything else is being matched to.
+   On a single-line link the two techniques are pixel-identical, which is worth knowing
+   before anyone tries to unify them: the absolute bar's containing block and the
+   background positioning area are both the padding box. So the header keeps its
+   ::before rather than being folded in here: converting it would trade a
+   compositor-driven transform for a repainting background animation to save one
+   declaration, and the header is the reference everything else is being matched to.
 
    The cost, stated plainly: a rule you draw yourself cannot skip ink. Where
-   `text-decoration` used to break around a descender this runs straight through it --
-   the same look as `text-decoration-skip-ink: none`. On the 21 Korean titles nothing
-   changes; on the Latin ones (journalctl, AI Odyssey, ARP Spoofing) the rule crosses the
-   descender. That is the price of the gesture, and there is no third option: skip-ink
-   belongs to text-decoration, and text-decoration has nothing to animate.
-
-   Each site then puts the rule back where its own `text-underline-offset` had it, because
-   100% -- the bottom of the padding box -- sits a different distance under the baseline at
-   every type size and family here. Those distances are not flattened to one number on
-   purpose: the header's own rule sits 0.254em under its baseline, deeper than six of these
-   sit today, because a flex item's bar hangs at the line-box bottom rather than the
-   glyph-box bottom. What is being copied is the motion, not the distance.
+   `text-decoration` breaks around a descender this runs straight through it -- the same
+   look as `text-decoration-skip-ink: none`. That is the price of the gesture, and there is
+   no third option: skip-ink belongs to text-decoration, and text-decoration has nothing
+   to animate.
 
    There are two knobs and they are not interchangeable, which is a fact about
    `background-clip` rather than a matter of taste. --wipe-y moves the rule UP: the
    background is clipped to the border box, so a position past 100% is not drawn at all.
-   Measured, before this was understood: `calc(100% + 0.14em)` on the kicker rendered
-   nothing, and `calc(100% + 0.07em)` on the rail rendered the rule 1px thick instead of
-   2px, silently clipped. To sit LOWER, a site adds `padding-block-end`, which moves the
-   bottom of the box the background is clipped to.
+   Measured at 14px: `calc(100% + 0.14em)` renders nothing, and `calc(100% + 0.07em)`
+   renders the rule 1px thick instead of 2px, silently clipped. To sit LOWER, a link adds
+   `padding-block-end`, which moves the bottom of the box the background is clipped to.
 
-   On an inline box that is free, and "free" here is an A/B measurement rather than a
-   claim about the spec: with the padding removed from each of the four sites that use it,
-   every containing block, every sibling and document.scrollHeight come back byte-identical
-   to three decimals, and the single number that changes is the link's own border box
-   (project 26 -> 25, kicker 19.97 -> 18.00, contents 19 -> 18). Vertical padding on an
-   inline box does not enter its line box, so nothing around it moves; it grows only the
-   box the background is clipped to, and incidentally the link's own hit target by a pixel
-   or two downward. On a BLOCK box the same padding would move everything below it, which
-   is why the footer link -- the only block-level site of the seven -- is tuned with
-   --wipe-y instead.
+   On an inline box that is free, and "free" is an A/B measurement rather than a claim
+   about the spec: with the padding removed, every containing block, every sibling and
+   document.scrollHeight come back identical to three decimals, and the single number that
+   changes is the link's own border box. Vertical padding on an inline box does not enter
+   its line box, so nothing around it moves; it grows only the box the background is
+   clipped to, and incidentally the link's own hit target by a pixel or two downward. On a
+   BLOCK box the same padding would move everything below it, which is why the footer
+   links -- block-level, as flex items -- are tuned with --wipe-y instead.
 
-   Where the old and the new position disagree by a pixel and there is no exact answer, the
-   rule goes a pixel lower rather than a pixel higher: it no longer skips ink, so the extra
-   pixel is the one that keeps it off a descender.
+   Where there is no exact position to match, the rule goes a pixel lower rather than a
+   pixel higher: it cannot skip ink, so the extra pixel is the one that keeps it off a
+   descender.
 
    No local reduced-motion query. The guard at the foot of this file already selects
    *, *::before and *::after, the transition degrades to an instant appear, and a second
    query here would be dead code. */
-/* The footer bar is the only place left that takes this; the body links that used to
-   carry .hover-wipe now step colour instead, the way the reference's body links do. */
 .site-foot__social a {
   background-image: linear-gradient(var(--crimson), var(--crimson));
   background-repeat: no-repeat;
@@ -485,35 +450,35 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 
 /* The one mode the background rule cannot reach, handed back.
 
-   Forced colours drop `background-image` outright -- measured in every one of the seven
-   sites with forced-colors emulated, `background-image` computes to `none`, so the rule
-   that marks a hovered link is simply not painted. The colour step goes with it: `color`
-   is forced to LinkText at rest and on hover alike. What these seven had before this
-   change was `text-decoration: underline`, which the UA paints in the forced text colour
-   and survives the mode intact -- the prose links on this site still draw theirs there
-   today. Without a fallback a High Contrast reader gets no hover or focus affordance at
-   all on any of the seven, where they had one before.
+   Forced colours drop `background-image` outright -- with forced-colors emulated,
+   `background-image` computes to `none` -- so the rule that marks a hovered link is simply
+   not painted. A colour step goes with it: `color` is forced to LinkText at rest and on
+   hover alike. `text-decoration: underline` is what survives the mode, painted by the UA
+   in the forced text colour, so it comes back here for hover and focus. Without it a High
+   Contrast reader gets no hover affordance on these links at all, and no focus mark
+   beyond the ring.
 
-   Same trade [slug].astro already makes twice, for the task-list checkbox and the
-   :target footnote: what is a background elsewhere is a real border or a real decoration
-   here.
+   The same trade [slug].astro makes for the task-list checkbox, the :target footnote and
+   the rail's hairline: what is a background elsewhere is handed back as something the
+   mode still paints.
 
-   Only the footer pair lives in this file. The other six are written beside their own
-   trigger rules in the page that owns them, because an Astro page scopes a rule by adding
-   its attribute to EVERY compound -- `.project__name[cid] a[cid]` -- which ties with a
-   selector of the same shape written here and then wins on stylesheet order. Measured
-   before the move: .project__name and .entry__title computed `text-decoration-line: none`
-   on hover in this mode while the other five computed `underline`. Inside the page the
-   same scope lands on both rules and the pseudo-class settles it. .site-foot__social a
-   cannot move -- its markup is Base.astro's -- and does not need to: its rest rule is in
-   this file, above this block.
+   Only the footer pair lives in this file. The other forced-colours underlines -- on the
+   Writing index's entry titles, the article's kicker, contents list and rail, and the
+   project names on /code/ -- are written beside their own rules in the page that owns
+   them, because an Astro page scopes a rule by adding its
+   attribute to EVERY compound -- `.project__name[cid] a[cid]` -- which ties with a
+   selector of the same shape written here and then wins on stylesheet order. Written
+   here, the .project__name and .entry__title underlines compute
+   `text-decoration-line: none` on hover in this mode. Inside the page the same scope
+   lands on both rules and the pseudo-class settles it. .site-foot__social a has its rest
+   rule in this file, above this block, so its pair belongs here.
 
    Two queries rather than one nested pair: the pointer half keeps the (hover: hover)
    gate, because a latched underline after a tap is the same defect in this mode as in
    any other.
 
-   Not applied to the header nav, which shares the blind spot and predates this work: its
-   bar is a pseudo-element background and disappears here too. Changing the reference is a
+   Not applied to the header nav, which shares the blind spot: its bar is a
+   pseudo-element background and disappears here too. Changing the reference is a
    separate decision from matching it. */
 @media (forced-colors: active) {
   .site-foot__social a:focus-visible { text-decoration: underline; }
@@ -533,11 +498,11 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
    stylesheet can outrank without !important, so it is steered through the
    --astro-code-* custom properties in tokens.css instead of being overridden.
 
-   Two corrections against the earlier draft:
-   1. The UA sheet gives `figure` `margin-inline: 40px`. Left unreset, all 55 code
-      blocks sit 40px right of the one left edge the whole page is built on.
-   2. No negative bleed. The bleed existed to compensate a shell whose content box
-      was 664px; base.css now sizes the shell to the 1024px page box, so the prose
+   Two things the plate must not do:
+   1. Keep the UA margin. The UA sheet gives `figure` `margin-inline: 40px`; left
+      unreset, every code block sits 40px right of the one left edge the whole page is
+      built on.
+   2. Bleed. The shell is sized to the 1024px page box (see `main` above), so the prose
       column really is 928px and the block is already the full measure. Bleeding
       -root-pad on top of that gives a 976px box that lines up with nothing —
       neither the rail's left edge nor the page box's right edge — and pushes the
@@ -557,7 +522,7 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
    is the transformer's contract, not a guess: a figcaption is emitted for every language
    except plaintext, which is what a fence with no language becomes. Measured on the built
    output: 52 code plates, 7 of them uncaptioned (6 fences carry no language and one is
-   written ```plaintext). The three terms are the same three the captioned path already spends
+   written ```plaintext). The three terms are the same three the captioned path spends
    (padding, row, caption margin), so both kinds of block open their first line of code at
    exactly the same depth. */
 .code[data-language='plaintext'] {
@@ -571,8 +536,8 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
   display: flex;
   align-items: center;
   gap: var(--sp-30);
-  /* The control sits at the right end of this row. align-items is already center, so the
-     label stays optically where it was and the row grows around it. */
+  /* The control sits at the right end of this row. align-items is center, so the label
+     stays optically centred and the row grows around it. */
   min-block-size: var(--copy-size);
   padding-inline: var(--code-pad);
   margin-block-end: var(--sp-40);
@@ -597,7 +562,7 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
   padding-inline: var(--code-pad);   /* rule's left end = first character's left end */
   font-family: var(--font-mono);
   font-size: var(--fs-code);
-  line-height: var(--lh-base);       /* 16 x 1.5 = 24 = --sp-24, on the paragraph grid */
+  line-height: var(--lh-base);       /* 1.5 x --fs-code: 21.6px at 14.4 */
   font-variant-ligatures: none;
   tab-size: 2;
 
@@ -625,14 +590,15 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 .code pre::-webkit-scrollbar-track { background: transparent; }
 
 /* The `<code>` inside the plate carries the text, and the UA sheet gives it its own
-   `font-family: monospace` — which beats what it would have inherited from the rule
-   above, so --font-mono never reached a single character of code. That is invisible
-   in English: Chrome resolves the `monospace` generic per the element's language, and
-   every article in this corpus is <article lang="ko">, where the generic is the Korean
-   fixed default (GulimChe on Windows) rather than Consolas. Measured on bind9's first
-   line, "sudo yum update -y" at --fs-code 16px: 144.00px as lang=ko, 158.34px with
-   this rule (= Consolas, and = what the same line already measured under lang=en).
-   Inherit rather than restate --font-mono, so the plate keeps one source of truth. */
+   `font-family: monospace` — which beats what it would inherit from the rule above, so
+   without this --font-mono would never reach a single character of code. That is
+   invisible in English: Chrome resolves the `monospace` generic per the element's
+   language, and an article whose prose is Korean is <article lang="ko">, where the
+   generic is the Korean fixed default (GulimChe on Windows) rather than Consolas.
+   Measured on bind9's first line, "sudo yum update -y" at 16px: 144.00px as lang=ko,
+   158.34px with this rule (= Consolas, and = what the same line measures under
+   lang=en). Inherit rather than restate --font-mono, so the plate keeps one source of
+   truth. */
 .code pre code { font-family: inherit; }
 
 /* The default outline-offset would draw the ring outside the plate. */
@@ -647,15 +613,14 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
    `color: var(--astro-code-token-*)` on every span inside it. That is the reason
    for choosing the css-variables theme: a transformer cannot do this.
 
-   Measured on the built DOM, not assumed. The earlier draft applied a punctuation
-   override to bash, sh and shellsession as well; against the real output that is
-   wrong on all three counts:
+   Measured on the built DOM, not assumed. A punctuation override on bash, sh or
+   shellsession as well would be wrong on all three counts:
      bash         punctuation = 1 span in 30 blocks, and it is ' &&' — a conjunction,
                   which the override would paint the colour reserved for "command
-                  starts here". bash's prompt is already token-function ($ x21 of 59).
+                  starts here". bash's prompt is already token-function ($ x22 of 59).
      sh           punctuation = 0 spans.
      shellsession never appears: the corpus writes ```console, and data-language keeps
-                  the author's word, so that selector matches no element.
+                  the author's word, so that selector would match no element.
    Only console earns it: punctuation = 17, of which 16 are prompt glyphs ($ x13, # x3). */
 .code[data-language='console'] { --astro-code-token-punctuation: var(--crimson-dark); }
 
@@ -665,7 +630,7 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 .code[data-language='bash'],
 .code[data-language='sh'] { --astro-code-token-keyword: var(--slate); }
 
-/* Inline code. 52 spans across 2 documents, median 14 characters — sparse and short.
+/* Inline code. 52 spans across 2 documents, median 13.5 characters — sparse and short.
    No corner radius: this page's vocabulary is a 4px rule and a 1px hairline, not curves. */
 :not(pre) > code {
   font-family: var(--font-mono);
@@ -760,28 +725,27 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
    left is the frame, and the one thing the picture cannot do for itself: fit.
 
    A diagram is baked at intrinsic size and scaled down here to whatever width the column
-   has, which is the opposite of what this block did before. The old rule kept every drawing
-   at 100% and scrolled the frame, on the argument that scaling the widest one would render
-   its labels at 9.0px. The argument was sound and the trade was still wrong: a picture you
-   have to drag sideways inside a page you are scrolling down is not a picture you read, and
-   it hid a diagram's whole point - its shape - behind a 928px slot. The reader said so.
+   has. Keeping every drawing at 100% and scrolling the frame would keep the labels at full
+   size, but a picture you have to drag sideways inside a page you are scrolling down is not
+   a picture you read, and it hides a diagram's whole point - its shape - behind a 928px
+   slot.
 
-   So the fix is two-sided, and only half of it is here. The other half is in
-   src/lib/diagrams.mjs: the two sequence diagrams are now baked with `sequence.wrap`, which
-   breaks long message labels instead of letting one label set the distance between two
-   lifelines. That is what makes fitting affordable - 1,103x660 becomes 660x780 and needs no
-   scaling at all, 1,540x874 becomes 1,194x958 and scales 0.75, so 16px labels land at 12px
-   rather than 9.3px. The flowchart is the one that does not come down: its width is four
-   boxes in a row, not one long line, so it still fits at 0.59 and its 15px labels land at
-   8.8px. It is a four-box pipeline whose shape survives that; its fine print does not, and
-   the honest answer there is the reader's own pinch-zoom, which on vector art costs nothing.
+   So fitting is two-sided, and only half of it is here. The other half is in
+   src/lib/diagrams.mjs: the sequence diagrams are baked with `sequence.wrap`, which breaks
+   long message labels instead of letting one label set the distance between two lifelines.
+   That is what makes fitting affordable - one comes out 660x780 (1,103x660 unwrapped) and
+   needs no scaling at all, the other 1,194x958 (1,540x874 unwrapped) and scales 0.75, so
+   its 16px labels land at 12px rather than 9.3px. The flowchart is the one that does not
+   come down: its width is four boxes in a row, not one long line, so it fits at 0.59 and
+   its 15px labels land at 8.8px. It is a four-box pipeline whose shape survives that; its
+   fine print does not, and the honest answer there is the reader's own pinch-zoom, which
+   on vector art costs nothing.
 
    `max-inline-size: 100%` with `block-size: auto` is the replaced-element idiom: the root's
    width/height attributes give the intrinsic ratio, so the height follows the width and the
-   picture never grows past what mermaid measured. Nothing scrolls, so the scroll shadows,
-   the thin scrollbar and the print override that used to undo `overflow-x` are all gone with
-   it: the five rules this block compiles to measure 373 B raw in the built sheet, 173 B
-   brotli, where the scrolling version measured 1,036 B.
+   picture never grows past what mermaid measured. Nothing scrolls, so the frame needs no
+   scroll shadows, no thin scrollbar and no print override for `overflow-x`: the five rules
+   this block compiles to measure 387 B raw in the built sheet, 176 B brotli.
 
    Global rather than in the article template, because the article template is not the only
    page that renders Markdown: src/pages/index.astro puts about.md through this pipeline too.
@@ -795,13 +759,12 @@ body > header nav a:focus-visible { color: var(--crimson-dark); }
 }
 :is(h2, h3, h4, h5, h6) + .diagram { margin-block-start: var(--sp-32); }
 /* Inside the border, like .code pre, so the ring is not drawn over the prose beside it.
-   The figure keeps its tabindex: it is no longer a scroll region, but it is still the one
-   thing on the page a keyboard reader may want to land on before zooming into it. */
+   The figure keeps its tabindex: it is not a scroll region, but it is still the one thing
+   on the page a keyboard reader may want to land on before zooming into it. */
 .diagram:focus-visible { outline: 3px solid var(--ppc-ui); outline-offset: -3px; }
 
 /* `display: block` also drops the inline baseline gap under the frame; `margin-inline: auto`
-   centres a drawing narrower than the column, which is now the common case rather than the
-   impossible one. */
+   centres a drawing narrower than the column, as the 660px sequence diagram is. */
 .diagram > svg {
   display: block;
   margin-inline: auto;

@@ -1,5 +1,6 @@
-/* Design tokens. Type, spacing and grid values are measured from The Harvard Gazette;
-   the colour ladder is re-derived around a crimson anchor. Single light theme — neither
+/* Design tokens. Type, spacing and grid values are measured from two reference sites,
+   The Harvard Gazette and nicholas.carlini.com; the colour ladder is re-derived around a
+   crimson anchor. Single light theme — neither
    reference site ships a dark mode. */
 
 :root {
@@ -11,8 +12,8 @@
        base   -> --ppc-ui    (rules, quote bars, focus rings)
        bright -> on black only
        wash   -> emphasis backgrounds
-     All 24 pairs were contrast-checked: dark >= 4.5, base >= 3.0, bright >= 4.5 on black,
-     wash <= 1.25. */
+     All 20 steps are contrast-checked against --page-bg, bright against black: dark >= 4.5,
+     base >= 3.0, bright >= 4.5 on black, wash <= 1.25. */
   --crimson-dark:   #771120;  --crimson:   #a51c30;  --crimson-bright: #faa2a2;  --crimson-wash: #f7ebeb;
 
   /* Hover step for a link in running text, and the one colour here that is not a rung of
@@ -55,81 +56,76 @@
 
      so the middle term equals MIN at exactly 320px and MAX at exactly 1488px,
      rather than merely approaching them. Rounded to four decimals the residual at
-     either endpoint is under 0.002px on every row. This is worth stating because
-     the file shipped the other kind once: --root-pad below keeps a different shape
-     on purpose, and its factor used to put its documented maximum at vw = 1600, so
-     the token resolved 29.85px at 1488 while the comment beside it said 32. Fixed
-     there; checked here.
+     either endpoint is under 0.002px on every row. Not every clamp in this file shares
+     these ends: --fs-code runs from 375 to 1440 and --root-pad has its own, each
+     explained at the token, and the spacing clamps (--sp-32 to --sp-120) keep theirs.
 
-     Retuned for Lora, and derived from Lora's outlines rather than scaled off the
-     retired Newsreader/Inter numbers by a constant. Measured on the shipped subset
+     Derived from Lora's outlines rather than scaled by a constant off the
+     Newsreader/Inter ladder it replaced. Measured on the shipped subset
      (public/fonts/latin-9bba8f25.woff2, wght 400, upem 1000): x-height .500em,
-     cap .700em, b-ascender .755em, p-descender -.255em. Inter's x-height was
+     cap .700em, b-ascender .755em, p-descender -.255em. Inter's x-height is
      .5459em, so an unchanged px size already draws 8.4% less lowercase on Lora;
-     a constant-factor rescale would have buried that instead of spending it.
+     a constant-factor rescale would bury that instead of spending it.
 
      The anchor is apparent size, not px. The reference this design was pointed at
-     sets the same face at 14pt = 18.667px, which is 9.333px of x-height. --fs-body
-     reaches 19px = 9.500px of x-height, 1.8% above the reference and 13.0% below
-     the 20px Inter it replaces (10.92px) - a 13% cut in what the eye measures out
-     of a 5% cut in px. Below 1488 the ramp is unchanged at its 16px floor, where
-     Lora is already 8.4% smaller than the Inter that floor was set for.
+     sets the same face at 14pt = 18.667px, which is 9.333px of x-height. The ladder
+     is cut against a 19px body = 9.500px of x-height, 1.8% above the reference and
+     13.0% below a 20px Inter (10.92px) - a 13% cut in what the eye measures out of a
+     5% cut in px. Running text itself is a flat 16px (see --fs-body); the headings
+     keep the 19px anchor.
 
-     The ladder is then a multiple of that body. The reference renders nothing above
+     The ladder is then a multiple of that anchor. The reference renders nothing above
      1.50x body anywhere; ours has to carry a real page title on pages with no image
-     and no other display element, so h1 takes 2.0x, h2 takes the reference's own
-     1.50x, and the rest interpolates:
+     and no other display element, so at 1488 h1 is 2.0x the anchor (38px), h2 the
+     reference's own 1.50x (28.5px), and the rest interpolates. Against the 16px body
+     that ships:
 
                     h1     h2     h3     h4     h5     h6    body
-         1488px   38.0   28.5   24.5   22.0   20.0   17.0   19.0
-                 2.00x  1.50x  1.29x  1.16x  1.05x  0.89x
+         1488px   38.0   28.5   24.5   22.0   20.0   17.0   16.0
+                 2.38x  1.78x  1.53x  1.38x  1.25x  1.06x
           320px   27.0   23.0   21.0   19.5   18.0   17.0   16.0
                  1.69x  1.44x  1.31x  1.22x  1.13x  1.06x
 
-     The retired ladder reached h1 64px (3.2x body) and h1-large 88px (4.4x). h6
-     drops 18 -> 17 so the ladder stays strictly monotone at 320px now that h5's
-     floor is 18; no document in content/ uses h5 or h6 (39 h1, 72 h2, 46 h3,
-     14 h4, 0 below), but .entry__title on the Writing index is --fs-h5, so h5 is
-     really "index entry title" and 20px against a 19px body is deliberate - the
-     reference sets its own index entries at exactly body size.
+     h6 is 17, not 18, so the ladder stays strictly monotone at 320px, where h5's
+     floor is 18. No post writes ##### or ######, but a post that contains an h1 has
+     every heading moved down one level (satteriProse), so its #### renders as h5.
+     .entry__title on the Writing index is --fs-h5 as well, so h5 is both the deepest
+     article heading and the index entry title: 20px at 1488 against the 16px body,
+     where the reference sets its own index entries at exactly body size.
 
-     --fs-small and --fs-medium are NOT changed. They drive the nav (11->14) and the
-     wordmark (12->16), both of which already land at or below the reference's body
-     size; they were never part of "the type is too big", and cutting them would push
-     the nav under 11px. Their share of body rises (small .70 -> .74, medium .80 -> .84)
-     purely because body fell. --fs-code was left out of that pass for the same reason and
-     cut later, on a complaint of its own - the code plates, not the prose, were the thing
-     reading too large once body stopped moving. 13->16 became 13->14.4; the arithmetic is
-     in the note at the token itself. */
-  --fs-small:    clamp(0.6875rem, 0.2568vw + 0.6361rem, 0.8750rem);  /* 11→14, unchanged */
-  --fs-medium:   clamp(0.7500rem, 0.3425vw + 0.6815rem, 1.0000rem);  /* 12→16, unchanged */
+     --fs-small and --fs-medium sit outside the ladder. --fs-small sets the small print
+     (footer, byline, labels, the contents rail) and --fs-medium the secondary text
+     (captions, tables, footnotes, the inline contents list). Both already land at or
+     below body size, and cutting --fs-small would push the small print under 11px. They
+     keep the same 320-1488 shape, 11->14 and 12->16. The nav and the page name have their
+     own token, --fs-nav, and --fs-code has its own note at the token. */
+  --fs-small:    clamp(0.6875rem, 0.2568vw + 0.6361rem, 0.8750rem);  /* 11→14 */
+  --fs-medium:   clamp(0.7500rem, 0.3425vw + 0.6815rem, 1.0000rem);  /* 12→16 */
 
   /* Body is a flat 16px, not a clamp, because that is what the reference is.
      Measured on nicholas.carlini.com/writing/2025/regex-chess.html at a 1440px viewport:
-     body 16px, line-height 27.2px, paragraph box 928px — the same measure this site now
+     body 16px, line-height 27.2px, paragraph box 928px — the same measure this site
      uses. It never declares a font-size at all, so its body is the browser default and
-     does not move with the viewport. Ours reached 18.81px at 1440 against that 16, which
-     is the 17% the reader saw as "전체적으로 큰".
+     does not move with the viewport. A body that grows with the viewport reads as too
+     large overall: a 16→19px ramp on the 320-1488 shape is already 18.9px at 1440, 18%
+     over the reference's 16.
 
-     Growing body with the viewport was the thing being removed, so the replacement is not
-     a shallower clamp. The heading ladder above stays as it is: the complaint was about
-     running text, and the ladder's own clamps are unaffected by this line. What does
-     change is the ladder's ratios to body, since body no longer rises — h1 is 2.375x at
-     1488 where it was 2.00x, and the table above is written in absolute px for that
-     reason. */
+     Growth with the viewport is the thing avoided, so this is not a shallower clamp
+     either. The heading ladder above keeps its own clamps, which this line does not
+     touch; only its ratios to body differ from the 19px anchor it was cut against — h1
+     is 2.375x at 1488 rather than 2.00x — and the table above gives them against this
+     16px. */
   --fs-body:     1rem;                                               /* 16, fixed */
 
   /* The header is measured from the reference's own header, not from body.
-     It sets its title at 150% and its nav at 120% of a 16px root: 24px and 19.2px. Those
-     used to hang off --fs-body here, which was right only while body also topped out near
-     19px; with body fixed at 16 the same expression would have shrunk the bar to 20/16 and
-     undone the header work. This token carries the nav size and .page-name takes 1.25x of
-     it, which is the reference's own 24:19.2 ratio.
+     It sets its title at 150% and its nav at 120% of a 16px root: 24px and 19.2px. Hung
+     off --fs-body instead, with the nav at body size and the name at 1.25x of it, the
+     bar would read 20/16 against the flat 16px body. This token carries the nav size and .page-name takes 1.25x of it, which is the
+     reference's own 24:19.2 ratio.
 
-     It stays a clamp where body does not, because the reference collapses its header into
-     a hamburger on a phone and this one wraps instead: a flat 19.2px nav wraps to a third
-     row at 320px. 16px at 320 is the same size the nav had before this change, so nothing
-     about the phone silhouette moves. */
+     It is a clamp where body is not, because the reference collapses its header into a
+     hamburger on a phone and this one wraps instead: a flat 19.2px nav wraps to a third
+     row at 320px, where 16px keeps the bar to two. */
   --fs-nav:      clamp(1.0000rem, 0.2740vw + 0.9452rem, 1.2000rem);  /* 16→19.2 */
   --fs-h6:       1.0625rem;                                          /* 17, fixed */
   --fs-h5:       clamp(1.1250rem, 0.1712vw + 1.0908rem, 1.2500rem);  /* 18→20 */
@@ -138,36 +134,37 @@
   --fs-h2:       clamp(1.4375rem, 0.4709vw + 1.3433rem, 1.7813rem);  /* 23→28.5 */
   --fs-h1:       clamp(1.6875rem, 0.9418vw + 1.4991rem, 2.3750rem);  /* 27→38 */
 
-  /* Unreferenced by any selector in src/ - checked, not assumed. Kept because the
-     names are part of the token contract, and re-pegged onto the retuned ladder so
-     that anything which later picks one up lands inside the scale instead of
-     reinstating a 56px or 88px step. --fs-h1-large is named in a comment in
-     src/pages/writing/[year]/[slug].astro explaining why the article title does not
-     use it; that reasoning survives the retune. */
+  /* Unreferenced by any rule in src/. Kept because the names are part of the token
+     contract, and sized on the ladder's own 320-1488 shape so that anything which later
+     picks one up lands near the scale rather than on a display step far above it.
+     --fs-h1-large is also named in src/pages/writing/[year]/[slug].astro, where the
+     article title's note says why the title does not use it. */
   --fs-xlarge:   clamp(1.2500rem, 0.5137vw + 1.1473rem, 1.6250rem);  /* 20→26 */
   --fs-2xlarge:  clamp(1.6250rem, 0.5137vw + 1.5223rem, 2.0000rem);  /* 26→32 */
   --fs-h1-large: clamp(2.0000rem, 1.1986vw + 1.7603rem, 2.8750rem);  /* 32→46 */
 
   /* Hooks for src/pages/writing/index.astro, which is written as a portable
      component: it re-declares --fs-h1 / --fs-h5 / --fs-large from
-     var(--wp-*, <its own literal clamp>). Those literals are the pre-Lora ladder
-     (34→64 and 20→24), so without these three lines the Writing index would keep a
-     64px masthead and 24px entry titles while every article dropped to 38px - and
-     all 30 entry titles on the site are on that one page. This is the same
-     mechanism fonts.css already uses to put the index on the shipped face through
-     --font-sans / --font-serif.
+     var(--wp-*, <its own literal clamp>), and those literals are a larger ladder than
+     this one (34→64, 20→24 and 16→20). Without --wp-h5 the entry titles would set at
+     20→24 while article headings follow the ladder above - and every entry title on
+     the site is on that one page. --wp-h1 sizes only the index's .sr-only page title,
+     which is never drawn, and --wp-large only the empty-state line, which a build with
+     any post never renders. This is the same mechanism fonts.css uses to put the index
+     on the shipped face through --font-sans / --font-serif.
 
      Written as literal clamps, not var(--fs-h1). Substitution happens at the
      declaring element, so :root { --wp-h1: var(--fs-h1) } would in fact compute to
      :root's --fs-h1 and inherit down cleanly - but the index assigns the result
      back into --fs-h1 on .index, and handing a property to itself through an alias
-     is not a thing to be clever about when the failure mode is 30 titles losing
-     their font-size. Keep these three in step with the rows above. */
+     is not a thing to be clever about when the failure mode is every entry title
+     losing its font-size. Keep --wp-h1 and --wp-h5 in step with --fs-h1 and --fs-h5.
+     --wp-large is not --fs-body: it is a 16→19 ramp, not the flat 16px. */
   --wp-h1:       clamp(1.6875rem, 0.9418vw + 1.4991rem, 2.3750rem);  /* = --fs-h1 */
   --wp-h5:       clamp(1.1250rem, 0.1712vw + 1.0908rem, 1.2500rem);  /* = --fs-h5 */
-  --wp-large:    clamp(1.0000rem, 0.2568vw + 0.9486rem, 1.1875rem);  /* = --fs-body */
+  --wp-large:    clamp(1.0000rem, 0.2568vw + 0.9486rem, 1.1875rem);  /* 16→19, not --fs-body */
 
-  /* Line heights. Unchanged by the move to Lora, and that is a measurement, not an
+  /* Line heights. Cut for Newsreader and kept for Lora on measurement, not by
      oversight - the tempting number to react to is the wrong one.
 
      Lora's metrics box is sTypoAscender + sTypoDescender = 1.006 + 0.274 = 1.280em,
@@ -175,17 +172,16 @@
      like every step below 1.28 has become an overlap. It has not. Lines collide when
      ink meets ink, and ink is what barely moved: measured on the shipped subset,
      Lora's lowercase and parentheses run -0.271em to +0.760em, a 1.031em band, against
-     Newsreader's 0.9745em band at its shipped size-adjust of 106% = 1.033em. The
-     heading band shrank by 0.2%.
+     1.033em for Newsreader, the face the ladder was set against (its 0.9745em band at the
+     106% size-adjust it used): the band is 0.2% narrower than the one these steps assume.
 
      What the larger metrics box does is shift the half-leading. At --lh-tight the
      half-leading is (1.1 - 1.280) / 2 = -0.090em, so the line box spans +0.916em to
      -0.364em around the baseline and the ink sits inside it with room at both ends:
      nothing clips, and consecutive lines clear by 1.1 - 1.031 = 0.069em. That is
-     2.6px on the retuned 38px h1, down from 4.4px at 64px - the clearance is a
-     ratio, so shrinking the ladder shrinks it in px but never closes it. Korean
-     headings are looser still - Hangul ink spans at most 0.840em once KoBody's
-     94.29% is applied.
+     2.6px on the 38px h1 - the clearance is a ratio, so a smaller size shrinks it
+     in px but never closes it. Korean headings are looser still - Hangul ink spans
+     at most 0.840em once KoBody's 94.29% is applied.
 
      The one glyph that would break this is $, which tops out at 0.833em; it appears
      only inside code, which sets --lh-base. */
@@ -202,7 +198,7 @@
   --sp-24: 1.5rem;                                          /* heading-adjacent rhythm */
   /* Between paragraphs, and the one spacing token deliberately written in em rather than
      rem. The reference sets `p { margin-top: 0; margin-bottom: .7em }`, which is 11.2px
-     against its 16px body; --sp-24 was 24px, 2.1x that, and read as too much air. A
+     against its 16px body; --sp-24 is 24px, 2.1x that, and reads as too much air. A
      custom property substitutes as a token stream, so the em resolves against the font
      size of whichever element consumes it — which is what keeps the gap proportional to
      the type instead of frozen at one pixel value. Read by three rules and no others:
@@ -221,8 +217,8 @@
   --sp-120: clamp(4rem, 3.5vw + 3.3rem, 7.5rem);
 
   /* ── Grid ──────────────────────────────────────────────────────────────────
-     --w-content is 928px: Carlini parity, chosen deliberately over the 728px this
-     file used to hold, with the cost measured first and accepted.
+     --w-content is 928px: Carlini parity, chosen deliberately over a 728px column,
+     with the cost measured first and accepted.
 
      Where the side whitespace comes from. Above the width at which the shell stops
      growing (1024 + 2 x --root-pad, which --root-pad's own ramp puts at vw = 1063),
@@ -231,83 +227,85 @@
          left  = (vw - 96 - --w-content) / 2 + 96      right = (vw - 96 - --w-content) / 2
 
      --root-pad cancels out of both: it is inside the shell's own max-width, so it
-     moves where the header hairline ends, never where the text starts. At 1488px
-     that is 328px left and 232px right whatever the padding does, and --w-content
-     is the only token on the page that can change it. At 728px it was 428 / 332,
-     so this is exactly the 100px a side that was asked for.
+     moves only the edge of main's own box, which paints nothing, never where the text
+     starts. At 1488px that is 328px left and 232px right whatever the padding does,
+     and --w-content is the only token on the page that can change it. A 728px column
+     would put it at 428 / 332, so 928 takes exactly 100px from each side.
 
-     What it cost. Measured over the real corpus (42 English and 664 Korean
-     paragraphs out of content/writing/, greedy-wrapped on spaces only because
-     word-break is keep-all, with Lora's advances and its 2,439 GPOS kern pairs,
-     and Pretendard's uniform 1770/2048 Hangul advance at KoBody's 94.29%). cpl is
-     the mean of the lines that actually wrap; the syllable figure is what one full
-     line holds:
+     What it costs. Measured over the paragraphs of the built articles, greedy-wrapped
+     on spaces only because word-break is keep-all, with Lora's advances and its 2,439
+     GPOS kern pairs, and Pretendard's uniform 1770/2048 Hangul advance at KoBody's
+     94.29%. cpl is the mean of the lines that actually wrap; the syllable figure is
+     what one full line holds:
 
-         728px / 19px   English  76.7 cpl   Korean 55.3 cpl   47.0 syllables
-         928px / 19px   English 100.4 cpl   Korean 71.3 cpl   59.9 syllables
+         728px / 16px   English  94.5 cpl   Korean 66.2 cpl   55.8 syllables
+         928px / 16px   English 122.2 cpl   Korean 85.4 cpl   71.2 syllables
 
      The usual bands are 45-75 characters for English and 41-45 syllables for
-     Korean. 728px was already past the Korean one at 47.0; 928px sits a third past
-     it, and English clears 100 characters a line. The corpus is 79.6% Hangul by
-     letter count, so that is the cost on four fifths of the site, not an edge case.
-     Those were the numbers on the table when the width was picked, and the wider
-     column was picked anyway. This block records the trade. It is not an argument
-     to reverse it, and no narrower fallback is hiding below: 928px is the measure
-     at every viewport wide enough to reach it.
+     Korean. Either width is past both at the 16px body; 928px holds more than half
+     again the Korean band's top, and English runs past 120 characters a line. The
+     column was chosen at a 19px body, where 928px held 59.9 syllables and about 100
+     English characters; the flat 16px body (see --fs-body) puts more on every line.
+     Article prose is about four fifths Hangul by letter count (see the KoBody note in
+     fonts.css), so that is the cost on most of the site, not an edge case. This block
+     records the trade. It is not an argument to reverse it, and no narrower fallback
+     is hiding below: 928px is the measure at every viewport wide enough to reach it.
 
      Both pages hang off this token, and they do not share it. The Writing index
      keeps its own --content-w, capped at min(100%, rail + gap + --content-w), so
-     the 100% branch follows a narrowing but nothing follows a widening. Moving this
-     line alone was measured, not guessed: with the index pinned at 824px and the
-     article at 1024px, the article title lands 100px to the LEFT of the entry it was
-     clicked from at 1488px and 1920px, and 81px left at 1024px - the wider box is
-     centred, so its left edge moves outward, not inward. --content-w in
-     src/pages/writing/index.astro therefore reads this token through var() rather
-     than re-stating it: a rem literal there matched only at a 16px root, and at a
-     12px root the article <h1> sat 116px left of the entry title. Bound, the two
-     left offsets were compared in a browser at 320 / 768 / 1024 / 1488 / 1920 and
-     at 12 / 14 / 16 / 20 / 24px roots: identical to the pixel at every one.
+     the 100% branch follows a narrowing but nothing follows a widening. Were the
+     index to restate the width instead, moving this line alone would part the two:
+     with the index at 824px and the article at 1024px, the article title lands 100px
+     to the LEFT of the entry it was clicked from at 1488px and 1920px, and 81px left
+     at 1024px - the wider box is centred, so its left edge moves outward, not inward.
+     --content-w in src/pages/writing/index.astro therefore reads this token through
+     var() rather than re-stating it: a rem literal there matches only at a 16px root,
+     and at a 12px root the article <h1> sits 116px left of the entry title. Bound, the
+     two left offsets were compared in a browser at 320 / 768 / 1024 / 1488 / 1920 and
+     at 12 / 14 / 16 / 20 / 24px roots: identical to the pixel wherever the rail's band,
+     below, does not apply.
 
-     One bounded exception to that, added later and named here because this is where
-     a reader will come looking for it. The nine articles that carry a contents rail
-     push their page box right when a centred gutter cannot seat the rail's 240px
-     floor - see the ── the rail ── block in src/pages/writing/[year]/[slug].astro.
-     Inside that band the article title leads the index entry instead of matching it:
-     measured at a 16px root, 72px at 1440, 48 at 1488, 24 at 1536, and 0.00px from
-     1584 up, at 1024 and below, and at every width for the other 21 articles. The
-     band tracks the root size, because the floor is expressed in rem along with the
-     type it exists to fit - measured 0.00px at every width at a 12px root, and at a
-     24px root it runs from 1440 to about 1912. Its worst case there is 195.91px at
-     1520, not the 156.80px it reads at the foot of the band: below 1521 the third,
-     room term of --toc-rail-w is what binds, so --page-left tracks the viewport and
-     the divergence RISES with it until the 15rem floor takes over. Sampling only the
-     usual 1440 / 1488 / 1536 / 1584 columns misses that peak by 8px and the foot of
-     the band by 39px. That is the whole of the divergence: no width, root size or
-     article overflows horizontally, and the page box never loses its full --w-page -
-     measured 928px of measure and 0 horizontal overflow at 12 / 14 / 16 / 20 / 24px
-     roots across 1400-2000px. */
+     One bounded exception to that, named here because this is where a reader will
+     come looking for it. From 1440px, where the contents rail is shown, every article
+     pushes its page box right wherever a centred gutter cannot seat the rail's 240px
+     floor; the gutter is reserved whether or not the post has a rail - see the
+     ── the rail ── block in src/pages/writing/[year]/[slug].astro. Inside that band
+     the article title sits right of the index entry instead of matching it: measured
+     at a 16px root, 72px at 1440, 48 at 1488, 24 at 1536, and 0.00px from 1584 up and
+     below 1440. The band tracks the root size, because the floor is expressed in rem
+     along with the type it exists to fit - measured 0.00px at every width at a 12px
+     root, and at a 24px root it runs from 1440 to about 1912. Its worst case there is
+     195.91px at 1520, not the 156.80px it reads at the foot of the band: below 1521
+     the third, room term of --toc-rail-w is what binds, so --page-left tracks the
+     viewport and the divergence RISES with it until the 15rem floor takes over.
+     Sampling only the usual 1440 / 1488 / 1536 / 1584 columns misses that peak by 8px
+     and the foot of the band by 39px. That is the whole of the divergence: no width,
+     root size or article overflows horizontally, and the page box never loses its full
+     --w-page - measured 928px of measure and 0 horizontal overflow at 12 / 14 / 16 /
+     20 / 24px roots across 1400-2000px. */
   --w-content: 928px;
-  /* Page box: the 72px date rail, its 24px gutter, and the measure. The index and the
-     article both hang off this, which is what puts their text on one left edge. */
+  /* Page box: the 72px date rail, its 24px gutter, and the measure. The shell, the
+     header and footer padding and the rail geometry read it; the index and the article
+     compute the same sum from --w-content, which is what puts their text on one left
+     edge. */
   --w-page: calc(var(--w-content) + 4.5rem + 1.5rem);   /* 1024px */
   --w-wide: 1488px;
   /* Outer gutter, 16 -> 24px. The reference site runs a flat 1em at every width;
-     this halves the growth toward that without going fixed.
+     this starts there and grows only to 24px rather than going fixed.
 
      The shape is deliberate and differs from the type scale above: the middle term
      is pinned at the 1rem floor for every viewport up to exactly 768px (1vw =
      0.48rem there, so the bracket is zero and negative below it), and only then
      ramps. A phone gutter must not ride a desktop ramp - the canonical
      A vw + B rem form would put 19.1px of padding on a 768px screen and cost the
-     prose 12px it does not have. The factor is what was wrong before, not the
-     shape: at 1.923 the term reached 2rem only at vw = 1600, so the token resolved
-     29.85px at 1488 while the comment claimed 32. At 1.1111 it is exactly 1.5rem
-     at 1488 ((0.93 - 0.48) x 1.1111 = 0.5), and exactly 1rem at 320.
+     prose 6px it does not have. The factor sets where the cap lands: at 1.1111 the
+     term is exactly 1.5rem at 1488 ((0.93 - 0.48) x 1.1111 = 0.5), and the floor
+     holds 1rem at 320.
 
-     Cost of the change, stated because it runs against the whitespace complaint by
-     a hair: the shell is 1024 + 2 x --root-pad, so at 1488 the header hairline and
-     the shell box span 1072px instead of 1083.7px, 5.85px less page furniture a
-     side. The prose column does not move at all - see the cancellation above. */
+     Above the width where the shell stops growing, the pad reaches neither the prose
+     nor the header's full-bleed rule: it sets the width of main's own box, 1024 + 2 x
+     --root-pad = 1072px at 1488, which nothing paints. The prose column does not move
+     at all - see the cancellation above. */
   --root-pad: clamp(1rem, 1rem + ((1vw - 0.48rem) * 1.1111), 1.5rem);  /* 16→24 */
 
   /* ── Syntax highlighting ───────────────────────────────────────────────────
@@ -320,9 +318,9 @@
      inherited value, and the block renders as flat body text. They are not
      optional — they ARE the palette.
 
-     Placement measured on the built DOM (dist, 55 fences, 2,431 token spans):
-       foreground 24.9% · string 21.1% · keyword 16.6% · string-expression 13.6%
-       punctuation 11.3% · function 6.1% · comment 3.5% · constant 2.8% · parameter 0.04%
+     Placement measured on the built DOM (dist, 52 plates, 2,230 token spans):
+       foreground 24.3% · string 21.3% · string-expression 14.8% · keyword 14.1%
+       punctuation 12.3% · function 6.3% · comment 3.9% · constant 3.1% · parameter 0.04%
      Contrast recomputed against both surfaces, sand #faedda first (the real plate):
        black 18.19/20.36 · purple-dark 9.84/11.01 · blue-dark 8.94/10.00
        crimson-dark 9.65/10.80 · ochre-dark 9.11/10.19 · slate 5.93/6.63. */
@@ -338,7 +336,7 @@
   --astro-code-token-parameter:         var(--black);
   --astro-code-token-link:              var(--blue-dark);
 
-  /* Code body. The top of the ramp is 0.9 x the now-fixed --fs-body, not 1.0: a
+  /* Code body. The top of the ramp is 0.9 x the fixed --fs-body, not 1.0: a
      monospace face at the same em reads larger than the text face beside it, because
      every glyph carries the width of the widest one, so code set at body size looks
      like the loudest thing in the article. 14.4px is the correction, and it is a
@@ -346,23 +344,27 @@
      own <pre> inherits from the UA monospace default against its 16px body.
 
      It buys line width as well as quiet. The plate's inner box is 928 - 2*16 = 896px,
-     and a line's width is linear in the size, so dropping 16 -> 14.4 is +10% of column.
+     and a line's width is linear in the size, so 14.4 rather than 16 is +10% of column.
      Measured over the built corpus - 52 plates, longest rendered line each, Consolas:
        at 16.0px   4 plates overflow 896px
        at 14.4px   3 plates overflow 896px
      The one that stops scrolling is the widest line any author here would want kept
      whole, a 110-column jsonc route table: 955px at 16, 859px at 14.4, 37px of slack.
-     The three that remain are dumps, not code - a 132-column apt log (needs 12.4px), a
-     701-column sysmon XML event (2.3px) and a 1,639-column JSON event (1.0px). No
-     readable size fits those; they keep the scroller, or take ```<lang> wrap.
+     Of the three that remain, one is a 132-column wget command that would need 12.4px,
+     under the 13px floor, and two are dumps, not code: a 701-column line of sysmon XML
+     config (2.3px) and a 1,639-column syslog line holding a raw sysmon XML event
+     (1.0px). They keep the scroller, or take ```<lang> wrap.
 
      How many characters 896px is still depends on the face: 104 at 0.600em (JetBrains
      Mono, Menlo), 113 at 0.5498em (Consolas, measured off the built page - a 132-column
-     line renders 72.57px per 1px of font-size). Do not quote a character count until
-     public/fonts/jetbrains-mono-latin.woff2 actually ships.
+     line renders 72.57px per 1px of font-size). No single character count holds until
+     the site ships a monospace face of its own.
 
-     The ramp's floor stays 13px: at 375 the plate's inner box is 294px, where every
-     fence scrolls whatever the size, and 13px is what ships there today. */
+     The ramp runs 13px at 375 to 14.4px at 1440, and the floor is 13px because a phone
+     gains little below it: at 375 the plate's inner box is about 300px (311 on a phone,
+     296 beside a classic scrollbar), some 40 columns at 13px, and half the plates run
+     wider than that, most of them far wider, so a smaller size would not stop them
+     scrolling. */
   --fs-code:  clamp(0.8125rem, 0.1315vw + 0.7817rem, 0.9rem);  /* 13→14.4 */
   --code-pad: var(--sp-40);                                  /* 16px */
 }

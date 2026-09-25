@@ -12,26 +12,25 @@
                                             OpenType features retained (Pretendard's
                                             GSUB carries no liga to keep)
 
-   That replaces a Newsreader/Inter pair costing 43,268B with one file at 22,300B, and
-   drops the English route from two font requests to one. Coverage does not shrink: the
-   retired masters carried 104 and 107 codepoints, this subset carries the 105 the built
-   corpus actually paints, and it adds U+2022 and U+2248, which no shipped face had
-   before. 27 codepoints in dist/ are covered by neither file - arrows, box drawing,
-   circled digits, three hiragana, one CJK ideograph and thirteen emoji - which is
-   exactly the set that fell back before the swap.
+   One Latin file at 22,300B, where the Newsreader/Inter pair it replaced cost 43,268B,
+   and one font request on an English route instead of two. Its 105 codepoints are
+   printable ASCII plus the ten non-ASCII marks the corpus painted when the subset was
+   cut, U+2022 and U+2248 among them (LATIN in scripts/subset-fonts.py). Codepoints the
+   built pages paint that neither file covers - arrows, box drawing, circled digits,
+   three hiragana, one CJK ideograph, a handful of emoji, and the footer's © - fall
+   back to a system face.
 
-   liga is kept, which the outgoing sans had no use for. Lora is a serif whose f hook
-   runs into a following dotted i, and the built text holds 60 `fi` and 51 `fl` pairs
-   (visible text of dist/, tags stripped). Lora ships exactly f+i and f+l; keeping both
-   costs 396B.
+   liga is kept. Lora is a serif whose f hook runs into a following dotted i, and the
+   built text holds 49 `fi` and 46 `fl` pairs outside code (visible text of dist/, tags
+   stripped, diagram labels included). Lora ships exactly f+i and f+l; keeping both costs 396B.
 
-   No italic is shipped. dist/ holds 10 <em>, 0 <i> and 0 <cite>; the 10 are on two
+   No italic is shipped. dist/ holds 14 <em>, 0 <i> and 0 <cite>; the 14 are on two
    articles, both <article class="post" lang="ko">, and [slug].astro sets
    `.post[lang='ko'] .prose em { font-style: normal; font-weight: 500 }` because
-   Pretendard has no italic to shear. So italic renders zero times in 36 pages, and
-   nothing is synthesised either, because nothing asks for it. Lora-Italic would be
-   ~23KB that is never fetched. To bring it back: drop Lora-Italic-wght.ttf in
-   fonts-src/ and add one JOBS row in scripts/subset-fonts.py.
+   Pretendard has no italic to shear. So italic renders on no built page, and nothing
+   is synthesised either, because nothing asks for it. Lora-Italic would be ~23KB that
+   is never fetched. To bring it back: drop Lora-Italic-wght.ttf in fonts-src/ and add
+   one JOBS row in scripts/subset-fonts.py.
 
    The Korean face is not sliced by unicode-range beyond the Hangul gate. Slicing was
    measured: cutting it into 4/8/12/16 frequency-ordered ranges and resolving each built
@@ -41,7 +40,8 @@
    file becomes ~152,000 across eight). 118KB is the price of the script.
 
    woff2 encoding is not byte-deterministic, so the ko figure drifts by ~100B per
-   rebuild; the filenames are content-hashed for exactly that reason. */
+   rebuild, and so does its content-hashed filename: re-running the script renames the
+   file even when its input has not changed. */
 
 /* One face, one axis, one @font-face. The display role needs 500 and the body role
    needs 400, 500 and 700; splitting them into two pinned faces would ship 36,180B in
@@ -49,14 +49,12 @@
    range. Lora's axis is exactly 400-700, so all three points are real instances and
    nothing is ever synthesised. There is no optical-size axis on this face: the 38px h1
    is the 16px letter enlarged, with identical stroke modulation. That is the look this
-   unification buys - and it is cheaper to live with since the retune, because the
-   ladder now tops out at 38px rather than 64px, where an unmodulated enlargement was
-   most visible.
+   unification buys, and it is cheap to live with because the ladder tops out at 38px,
+   well short of display sizes, where an unmodulated enlargement shows most.
 
-   No size-adjust. The retired display face carried 106% to reach a cap-height reference
-   it was not cut for; with a single Latin face there is no second Latin face to
-   reconcile with, and scaling the whole site up 6% is the opposite of what was asked
-   for. Lora ships at its own scale, and the Korean face is matched to it below. */
+   No size-adjust. With a single Latin face there is no second Latin face to reconcile
+   with, and the type scale in tokens.css is derived from Lora's own outlines at its own
+   scale. Lora ships at that scale, and the Korean face is matched to it below. */
 @font-face {
   font-family: 'Lora';
   src: url('/fonts/latin-9bba8f25.woff2') format('woff2-variations');
@@ -65,8 +63,8 @@
   font-display: swap;
 }
 
-/* Hangul only - no Latin outlines survive in this file. The unicode-range gate had
-   already made them unreachable; carrying them cost 12,316B.
+/* Hangul only - no Latin outlines survive in this file. The unicode-range gate makes
+   them unreachable, and carrying them would cost 12,316B.
 
    Read that first line before reading the arithmetic: this face draws 963 Hangul
    codepoints and nothing else, so its own Latin metrics never paint. What size-adjust
@@ -75,12 +73,12 @@
 
      Lora x-height .50000 / Pretendard x-height .53027 = 94.29%
 
-   Why that ratio and not another: Pretendard's Latin is Inter's, uniformly scaled, and
-   the retired 102.9% was exactly Inter .54590 / Pretendard .53027 = 102.95% - the scale
-   at which Pretendard's Latin equals Inter's, and therefore the scale at which its
-   Hangul sits as its designer drew it against that Latin. Substituting Lora for Inter
-   in that chain gives 102.95% x (.50000 / .54590) = .50000 / .53027, with the Inter
-   term cancelling. The new number is the old method, not a new one.
+   Why that ratio and not another: Pretendard's Latin is Inter's, uniformly scaled, so
+   Inter .54590 / Pretendard .53027 = 102.95% is the scale at which Pretendard's Latin
+   equals Inter's, and therefore the scale at which its Hangul sits as its designer drew
+   it against that Latin - the factor this face carried beside Inter. Substituting Lora
+   for Inter in that chain gives 102.95% x (.50000 / .54590) = .50000 / .53027, with the
+   Inter term cancelling. It is the same method, applied to Lora.
 
    Checked against what is actually drawn, measured on the shipped file at wght 400:
    Hangul ink tops at .7881em (median of 961 syllables, max .8027) and bottoms at
@@ -90,12 +88,13 @@
    (.70000 / .70703) is 99.01% and puts Hangul at .7803em, over Lora's ascenders;
    lowercase-ascender parity (.75500 / .70703) is 106.78% and is further still.
 
-   Note what this costs. Article prose in dist/ is 55,272 Hangul letters against 25,705
-   Latin, so 94.29% shrinks the two thirds of the site that is Korean to match the third
-   that is not: Hangul's ink top goes from .8109em under the old 102.9% to .7431em, 8.4%
-   smaller. That is the honest consequence of unifying on a face with no Hangul. If
-   Korean should give up less, o-height parity (.51600 / .53711) = 96.07% is the
-   defensible middle - and it is a one-line change, because the two KoFallback overrides
+   Note what this costs. Article prose in dist/, code excluded, is 53,523 Hangul letters
+   against 14,717 Latin, so 94.29% shrinks the four fifths of the prose that is Korean
+   to match the fifth that is not: Hangul's ink top is .7431em against .8109em at the
+   Inter-matched 102.9%, 8.4% smaller. That is the honest consequence of unifying on a
+   face with no Hangul. If Korean should give up less, o-height parity (.51600 / .53711)
+   = 96.07% is the defensible middle - and it is a two-number change, this size-adjust
+   and KoFallback's (.8642578 x the new factor), because the two KoFallback overrides
    below do not move with it. */
 @font-face {
   font-family: 'KoBody';
@@ -106,13 +105,13 @@
   size-adjust: 94.29%;
   unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;
 }
-/* There is no KoDisplay any more. It existed to track a separate Latin display face at
-   106%; with one Latin face, one Korean declaration serves headings and body alike. */
+/* One Korean declaration serves headings and body alike: with one Latin face there is no
+   separate display face for a second Korean face to track. */
 
 /* ── Fallback metrics ───────────────────────────────────────────────────────────────
-   118KB arrives after HTML, after CSS, after layout. Until it lands, 32 of the 36 built
-   pages paint in a system Korean face, and without these overrides the swap reflows
-   every Korean paragraph.
+   118KB arrives after HTML, after CSS, after layout. Until it lands, every page that
+   sets Hangul - each article and the Writing index - paints it in a system Korean face,
+   and without these overrides the swap reflows every Korean paragraph.
 
    The numbers are exact, not fitted. Measured on pretendard-var.woff2: all 963 Hangul
    codepoints advance 1770/2048 - the histogram has a single entry, no exceptions - with
@@ -130,24 +129,25 @@
      ascent-override  .8977807 / .8149080 = 110.17%
      descent-override .2274378 / .8149080 =  27.91%
 
-   Only the first number moved when KoBody went 102.9% -> 94.29%. The two overrides are
-   ratios in which the KoBody factor appears in both numerator and denominator and
-   cancels exactly - they reduce to 1950/1770 and 494/1770 - so 110.17% and 27.91% hold
-   for any KoBody value. Do not recompute them.
+   Only the first number depends on KoBody's size-adjust. The two overrides are ratios
+   in which the KoBody factor appears in both numerator and denominator and cancels
+   exactly - they reduce to 1950/1770 and 494/1770 - so 110.17% and 27.91% hold for any
+   KoBody value. Do not recompute them.
 
    One rule with every platform font in its src list, not one rule per platform. With
-   three same-family rules Chrome builds the fallback from every face whose local()
+   several same-family rules Chrome builds the fallback from every face whose local()
    resolves and loads each installed one again for every size and weight it sets Hangul
    at, before first paint. A machine with Malgun Gothic and Noto Sans KR both installed,
-   which recent Korean Windows is, paid for both. In a single src list only the first
+   which recent Korean Windows is, pays for both. In a single src list only the first
    local() that resolves is loaded.
 
-   The order keeps the face each platform got from the three rules, where the last
-   declared one won: Malgun Gothic wherever it is installed (Windows, and Macs with
+   The order puts Malgun Gothic first wherever it is installed (Windows, and Macs with
    Office), then Apple SD Gothic Neo (macOS, iOS), then Noto Sans KR or Nanum Gothic.
-   The overrides were the same on all three, so no metric moves. Malgun's hhea
-   (2229/-495) and typo (1638/-410) metrics disagree; the overrides make it irrelevant
-   which one the browser reads. */
+   One set of overrides serves all of them: the ascent and descent overrides carry
+   Pretendard's metrics whichever face they land on, and the size-adjust assumes the
+   1.0em Hangul advance the first three share. Malgun's hhea (2229/-495) and typo
+   (1638/-410) metrics disagree; the overrides make it irrelevant which one the browser
+   reads. */
 @font-face {
   font-family: 'KoFallback';
   src: local('Malgun Gothic'), local('Apple SD Gothic Neo'),
@@ -157,9 +157,9 @@
 }
 
 /* Latin fallback. Lora is preloaded on every route, so this is slow-link insurance -
-   but the stack used to name Helvetica, Arial and Segoe UI, which made the unstyled
-   flash sans and the swap sans-to-serif. Against a serif it has to be a serif. Georgia
-   ships on Windows and macOS both and is the closest of the system serifs.
+   but a sans stack (Helvetica, Arial, Segoe UI) would make the unstyled flash sans and
+   the swap sans-to-serif. Against a serif it has to be a serif. Georgia ships on
+   Windows and macOS both and is the closest of the system serifs.
 
    Matched on mean lowercase advance from hmtx, which is the criterion that keeps the
    swap from reflowing a line (x-height would give 103.85% and move line breaks). The
@@ -182,8 +182,8 @@
 
 :root {
   /* One stack under two names. The templates ask for a display face and a body face;
-     since the unification there is one Latin face, so both resolve to Lora and the
-     distinction survives only in the variable names the page templates already use. */
+     there is one Latin face, so both resolve to Lora and the distinction survives only
+     in the variable names the page templates use. */
   --font-display: 'Lora', 'KoBody', 'KoFallback', 'LatinFallback', Georgia, 'Times New Roman', serif;
   --font-body:    'Lora', 'KoBody', 'KoFallback', 'LatinFallback', Georgia, 'Times New Roman', serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -191,11 +191,11 @@
   /* src/pages/writing/index.astro is written as a portable component: it re-declares
      --font-body and --font-display from `var(--font-sans, ...)` and `var(--font-serif,
      ...)`, whose fallbacks name Inter and Newsreader as *installed local families*, not
-     as the @font-face families this file defines. Nothing ever defined these two hooks,
-     so the Writing index - 30 titles, the largest type on the site - has been painting
-     in whatever Inter or Newsreader the reader happens to have installed, and otherwise
-     in system-ui and Georgia, while still paying for the preload. Defining them here is
-     what puts the index on the shipped face, without editing the component. */
+     as the @font-face families this file defines. Without these two hooks the Writing
+     index - every entry title on the site - would paint in whatever Inter or Newsreader
+     the reader happens to have installed, and otherwise in system-ui and Georgia, while
+     still paying for the preload. Defining them here is what puts the index on the
+     shipped face, without editing the component. */
   --font-sans:  'Lora', 'KoBody', 'KoFallback', 'LatinFallback', Georgia, 'Times New Roman', serif;
   --font-serif: 'Lora', 'KoBody', 'KoFallback', 'LatinFallback', Georgia, 'Times New Roman', serif;
 }
