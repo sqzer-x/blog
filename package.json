@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "astro dev",
     "prebuild": "node scripts/check-content.mjs && node scripts/render-diagrams.mjs && node scripts/build-info.mjs",
-    "build": "astro build",
+    "build": "astro build --force",
     "postbuild": "node scripts/check-dist.mjs",
     "preview": "astro preview",
     "check": "node scripts/check-content.mjs",
