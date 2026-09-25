@@ -9,11 +9,13 @@ interface Props {
   description?: string;
   section?: string;
   /**
-   * Does this page put Hangul on screen? It decides which font is preloaded, and it is
-   * NOT the same question as the document language. /writing/ is an English document —
-   * heading "Writing", year kickers, "30 posts" — that renders 21 Korean titles above
-   * the fold, and `/` is an English document whose one tagline is Korean. 31 of the 35
-   * built pages need the Korean face; only /papers/, /talk/, /code/ and /404.html do not.
+   * Does this page put Hangul on screen? It decides whether the Korean face is preloaded,
+   * and it is NOT the same question as the document language. /writing/ is an English
+   * document — heading "Writing", year kickers — that renders Korean titles above the
+   * fold; `/` takes the answer from about.md's body and /code/ from each project's name
+   * and body, which no title or description reveals. Pages with no Korean on screen skip the face: /papers/, /talk/
+   * and /404.html always, `/` and /code/ while about.md and the project descriptions stay
+   * English.
    * Pass it explicitly wherever the Korean text is not already in title or description.
    */
   ko?: boolean;
@@ -21,12 +23,13 @@ interface Props {
 const { title, description, section = 'slate', ko } = Astro.props;
 
 /**
- * Preload the face that blocks first paint on THIS route, not a fixed pair.
+ * Preload only the faces that block first paint on THIS route.
  *
- * Measured: the Korean face is 118,240B against 21,816 + 21,308 for the Latin pair, and
- * it is discovered last — HTML, then CSS, then layout, then the request. On a Korean
- * article the display face sets exactly one string above the fold, the wordmark, so
- * preloading it ahead of the Korean body text inverts the priority.
+ * Measured: the Korean face is 118,136B against 22,300B for Lora, and it is discovered
+ * last — HTML, then CSS, then layout, then the request. Lora sets every page, so it is
+ * preloaded everywhere; the Korean face only where the page puts Hangul on screen, which
+ * is what `ko` answers and what `needsKo` falls back to asking of the title and
+ * description.
  *
  * woff2 is already Brotli-compressed, so none of these numbers move on the wire.
  */
@@ -66,22 +69,21 @@ const currentNav = NAV.find((n) => n.href !== '/' && isCurrent(n.href));
 const SITE_OWNER = 'Hyukjin An';
 const pageName = currentNav?.label ?? SITE_OWNER;
 
-/* Copyright range. The opening year is fixed; the closing year is the build's, in UTC like
-   every other date on this site. Stamping it at build time rather than typing 2026 means the
-   notice cannot quietly go stale — and if a year passes with no push, it correctly keeps
-   showing the year of the last publication rather than a year nothing was published in. */
 /* Profiles, not a link list: rel="me" below only means anything for places that are
    this person. GitHub and Instagram are the pair sqzer.com's own footer carries. The
-   LinkedIn handle is the author's own correction — what stood here came from the previous
-   about.md and was /in/devastator-x, the same handle as a GitHub account that now 404s.
-   No automated check would have caught it: LinkedIn answers robots with a 999 whatever
-   the URL, so a dead profile and a live one look identical from here. */
+   LinkedIn handle is the author's own, and only the author can vouch for it: LinkedIn
+   answers robots with a 999 whatever the URL, so a dead profile and a live one look
+   identical to any automated check. */
 const ELSEWHERE = [
   { label: 'GitHub',    href: 'https://github.com/sqzer-x' },
   { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/sqzer' },
   { label: 'Instagram', href: 'https://www.instagram.com/sqzer_x' },
 ];
 
+/* Copyright range. The opening year is fixed; the closing year is the build's, in UTC like
+   every other date on this site. Stamping it at build time rather than typing 2026 means the
+   notice cannot quietly go stale — and if a year passes with no push, it correctly keeps
+   showing the year of the last publication rather than a year nothing was published in. */
 const SITE_YEAR_FROM = 2009;
 const buildYear = new Date().getUTCFullYear();
 ---
@@ -94,17 +96,16 @@ const buildYear = new Date().getUTCFullYear();
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={new URL(here, Astro.site)} />
     <link rel="alternate" type="application/rss+xml" title="sqzer" href="/index.xml" />
-    {/* The site had no icon at all: /favicon.ico and /favicon.svg both 404'd, so every tab
-        showed the browser's placeholder. It is the author's own portrait, cropped square
-        on the head rather than scaled from the 4:5 original — a whole portrait shrunk to
-        16px is a smudge, where a head fills the frame and still reads.
+    {/* The icon is the author's own portrait, cropped square on the head rather than
+        scaled from the 4:5 original — a whole portrait shrunk to 16px is a smudge, where
+        a head fills the frame and still reads.
         No SVG icon: this is a photograph, and the .ico carries 16, 32 and 48 for the
         sizes that actually get asked for. */}
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    {/* One Latin face now, so this is unconditional: every page paints Lora, and the
-        old branch between a display face and the Korean one has nothing left to pick. */}
+    {/* One Latin face, so this is unconditional: every page paints Lora. The Korean
+        face follows needsKo. */}
     <link rel="preload" href="/fonts/latin-9bba8f25.woff2" as="font" type="font/woff2" crossorigin />
     {needsKo && <link rel="preload" href="/fonts/ko-02f8cebd.woff2" as="font" type="font/woff2" crossorigin />}
   </head>

@@ -22,7 +22,7 @@ const projects = (await getCollection('code'))
   );
 
 /* The description is each file's markdown body, so every entry has to be rendered before
-   the template can lay it out. Seven `render()` calls, resolved together. */
+   the template can lay it out. One `render()` call per entry, resolved together. */
 projects.forEach(assertRendered);
 const entries = await Promise.all(
   projects.map(async (p) => ({ entry: p, Content: (await render(p)).Content })),
@@ -30,9 +30,9 @@ const entries = await Promise.all(
 
 /* The same question src/pages/index.astro asks of about.md, and for the same reason: the
    metadata on this route is English whatever the content says, so only the content can
-   answer whether the 118KB Korean face blocks first paint. It is false for all seven
-   projects today — which is what the note in Base.astro claims about /code/ — and it
-   stops being a lie the day one of these descriptions is written in Korean. */
+   answer whether the 118KB Korean face blocks first paint. Every name and description is
+   English today, so the answer is false and /code/ fetches no Korean font, as the `ko`
+   note in Base.astro says; the day one of them is written in Korean, it becomes true. */
 const ko = projects.some((p) => hasHangul(p.data.name, p.body));
 ---
 <Base
@@ -41,10 +41,6 @@ const ko = projects.some((p) => hasHangul(p.data.name, p.body));
   ko={ko}
 >
   <div class="code-index">
-    {/* Flush with the page box, exactly as .index__head is on /writing/: the h1 is the
-        page's own name, so it takes the shell's edge rather than a column's. Left as a
-        bare <h1> with no class and no font rules of its own, which is what puts it on the
-        same left edge and at the same size as the h1 on /papers/ and /talk/. */}
       {/* The reference carries no page title on its section pages: the bar's left slot
           already prints the page name, so an <h1> repeating it is the same word twice.
           Kept in the document as .sr-only rather than deleted — the page still needs one
@@ -77,17 +73,13 @@ const ko = projects.some((p) => hasHangul(p.data.name, p.body));
 
      Capped WITHOUT `margin-inline: auto`, and that is the load-bearing half. `main` caps
      at --w-page (1024px) and centres itself; centring a narrower box inside it again
-     would step this page's <h1> ~48px right of the <h1> on /papers/ and /talk/, which is
-     the edge that was just measured to the pixel (330.5px at a 1700px window, identical
-     on all four section indexes). With margin-inline at its 0 default the box keeps
-     `main`'s left edge and gives the 96px back on the right — the mirror of /writing/,
-     where that same 96px is the date rail on the left. */
+     would step this page's list ~48px right of `main`'s left edge, which is where the
+     header's page name and the text of /papers/ and /talk/ start. With margin-inline at
+     its 0 default the box keeps `main`'s left edge and gives the 96px back on the right —
+     the mirror of /writing/, where that same 96px is the date rail on the left. */
   .code-index {
     max-width: var(--w-content);
   }
-
-  /* --sp-48 is the block rhythm token, and the same clamp(2rem, …, 3rem) that /writing/
-     spends between its masthead and its first year. */
 
   .code-index__empty {
     font-size: var(--fs-body);
@@ -103,56 +95,39 @@ const ko = projects.some((p) => hasHangul(p.data.name, p.body));
      rule, no wash, no row-sized hit area. Copied as it stands rather than borrowing the
      Writing index's row treatment, because that treatment is answering a different
      question — a row on /writing/ is one whole link to a page of this site, so the row
-     can be the control and the underline can wait for hover. A row here is a name that
-     leaves the site, so the name is the control, it carries the underline base.css gives
-     every link, and there is nothing else on the row to make clickable. Hairlines
-     between seven entries would be furniture the reference does not have and this page
-     does not need. */
+     can be the control. A row here is a name that leaves the site, so the name is the
+     control, and there is nothing else on the row to make clickable. Hairlines between
+     entries would be furniture the reference does not have and this page does not
+     need. */
   .project + .project {
     margin-top: var(--sp-32);
   }
 
-  /* h2 is the right element — this is a list of seven named things directly under the
-     page's h1, and a screen reader should be able to walk it — but not the right size.
-     --fs-h2 is 28.5px, which reads as seven section headings; --fs-h5 is what the
-     Writing index already sets its entry titles at, and tokens.css says so in as many
-     words: "h5 is really 'index entry title'". Family, weight and colour come from
-     base.css's heading rule, and the link keeps the heading's 500 through
-     `:is(h1…h6) a { font-weight: inherit }`. */
+  /* h2 is the right element — this is a list of named things directly under the page's
+     h1, and a screen reader should be able to walk it — but not the right size. --fs-h2
+     reaches 28.5px, which reads as a run of section headings; --fs-h5 is what the
+     Writing index sets its entry titles at. Family, weight and colour come from
+     base.css's heading rule, and the link keeps the heading's 500 through the global
+     `a { font-weight: inherit }`. */
   .project__name {
     font-size: var(--fs-h5);
     line-height: var(--lh-medium);
     text-wrap: balance;
   }
 
-  /* Crimson, no underline. base.css underlines every <a> because prose links have to be
-     findable inside running text; here the link IS the entry's headline, so the colour is
-     already the whole affordance and the rule under it only adds noise. --crimson measures
-     7.25:1 against --page-bg, over the 4.5:1 normal text needs, so the colour is not
-     carrying meaning at a contrast that fails — and it lands within 0.23 of the 7.48:1 the
-     reference sets its own outbound links at. The underline comes back on hover and on
-     keyboard focus, where a second signal is cheap and colour alone would be the only cue
-     that the pointer is over a target. */
-  /* The rule that comes back on hover is the header nav's wipe, opening from the centre
-     over 0.3s -- see .hover-wipe in base.css. The name already wraps, which is why it
-     takes the per-fragment technique rather than an absolute bar: an absolute bar would
-     draw one rectangle under the last line at the width of the widest. Measured: at 375
-     the longest name fits by 6.45px (321.55px in a 328px column) and nothing wraps, but
-     the column is 313px at 360 and 273px at 320, and USFX takes two lines from 360 down,
-     UDFX from 320, OMMP from 280. Hovered at 320, USFX draws two rules of 144 and 171px,
-     one per line, each opening from its own centre.
-     The rule needs to sit one pixel lower than the padding-box bottom, not higher:
-     measured at 1700, the auto underline's top row was 148.88 and the unpadded background's
-     147.88. Pushing down is `padding-block-end`, never --wipe-y -- the background is
-     clipped to the border box and a position past 100% is simply not painted. This link is
-     inline, so the padding costs no layout: A/B'd with it removed, .project__name,
-     .project__about and .projects and the document height are identical to three decimals
-     at 1700 and at 375, and the only number that moves is the link's own border box, 26 ->
-     25. 0.05em is that pixel at 20px and 0.9px at the 18px floor.
-     The colour keeps stepping to --crimson-dark, and both halves move inside the pointer
-     gate: a bare :hover latches after a tap on a touch screen and would leave the project
-     marked until the next tap elsewhere. :focus-visible stays outside the gate -- it is
-     the keyboard path, and it had no underline at all before the gate went in. */
+  /* Crimson, no underline: the colour-only treatment base.css gives <a>, and here
+     the link IS the entry's headline, so the colour is the whole affordance. --crimson
+     measures 7.25:1 against --page-bg, over the 4.5:1 normal text needs, so the colour is
+     not carrying meaning at a contrast that fails — and it lands within 0.23 of the
+     7.48:1 the reference sets its own outbound links at.
+     Hover and keyboard focus step the colour to --crimson-lift. The hover half sits
+     inside the pointer gate: a bare :hover latches after a tap on a touch screen and would
+     leave the project marked until the next tap elsewhere. :focus-visible stays outside
+     the gate -- it is the keyboard path, and the global focus ring comes with it.
+     The 0.05em of padding-block-end draws nothing. The link is inline, so it costs no
+     layout; it only lowers the bottom of the link's box, and with it the focus ring and
+     the hit area, by 0.05em: a pixel at 20px, 0.9px at the 18px floor. Check the ring
+     before removing it. */
   .project__name a { color: var(--crimson); text-decoration: none; padding-block-end: 0.05em; }
   /* Hover is a colour step, not a rule. The reference draws its animated underline in one
      place only - the header nav - and every link in the body of a page, its writing index,
@@ -163,11 +138,11 @@ const ko = projects.some((p) => hasHangul(p.data.name, p.body));
     .project__name a:hover { color: var(--crimson-lift); }
   }
 
-  /* Forced colours drop background-image, so the wipe is not painted there at all and the
-     colour step is overridden too -- see the note beside .hover-wipe in base.css. The
-     underline this rule replaced is what that mode can still draw, so it comes back here
-     and only here. Written in this file rather than in base.css because Astro scopes a
-     page rule on every compound, which outranks the same selector written globally. */
+  /* Forced colours force `color` to the system link colour at rest and on hover alike, so
+     the colour step above does not show in that mode. An underline is what the mode can
+     still draw, so hover and focus get one here and only here. Written in this file
+     rather than in base.css because Astro scopes a page rule on every compound, which
+     outranks the same selector written globally. */
   @media (forced-colors: active) {
     .project__name a:focus-visible { text-decoration: underline; }
   }
@@ -186,8 +161,8 @@ const ko = projects.some((p) => hasHangul(p.data.name, p.body));
      keep-all is a no-op on the English descriptions here and is the house rule
      everywhere Korean can appear (.prose, .about, .entry__title); `ko` above already
      anticipates a Korean description, so this does too. break-word is the guard against
-     a long unbroken token — the defect that made `/` scroll sideways on a phone when
-     about.md printed a 40-character URL with no space in it. */
+     a long unbroken token such as a bare URL, which would otherwise set the page's
+     minimum width and scroll it sideways on a phone. */
   .project__about {
     margin-top: 0.375rem;
     word-break: keep-all;

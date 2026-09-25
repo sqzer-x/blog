@@ -16,15 +16,15 @@ const md = (iso: string) => `${iso.slice(5, 7)}.${iso.slice(8, 10)}`;
 
 const span = years.length ? `${years[years.length - 1]}–${years[0]}` : '';
 
-/* This page is an English document - heading, year kickers, "30 posts" - that sets 21
-   Korean titles, six of them above the fold. Deciding the font preload from the document
+/* This page is an English document - heading, year kickers - that sets Korean titles,
+   several of them above the fold. Deciding the font preload from the document
    language would skip the Korean face on the site's densest page and leave those titles
    in fallback until a third-wave request lands. Ask the strings that will be painted. */
 const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
 ---
 <Base
   title="Writing :: sqzer"
-  description="Essays and technical notes, 2024–2026."
+  description={span ? `Essays and technical notes, ${span}.` : 'Essays and technical notes.'}
   ko={ko}
 >
   <div class="index">
@@ -61,8 +61,15 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
 <style>
   /* ────────────────────────────────────────────────────────────────
      Page-local tokens.
-     Defers to the global token set once Base provides it; until then these stand alone
-     using the clamp literals measured from the Gazette.
+     Most are var(hook, literal): the literal is the stand-alone value measured from the
+     Gazette, and the hook is where the global token set can override it. Only some hooks
+     are set. tokens.css sets --w-content, --wp-h1, --wp-h5 and --wp-large, and fonts.css
+     sets --font-sans and --font-serif. Nothing defines --wp-small, --wp-medium,
+     --wp-kicker or the --desk-* and --color-* hooks, so those resolve to the literals
+     here. The colour literals equal tokens.css's --crimson-dark, --crimson,
+     --crimson-wash, --black, --slate, --grey and --sand-light today, but a change there
+     does not reach these page-local tokens. (The row hover and the focused title read
+     --crimson directly, so that one does reach this page.)
      ──────────────────────────────────────────────────────────────── */
   .index {
     /* Grid */
@@ -82,14 +89,14 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
        the same var(global, measured-literal) shape as the type scale below.
 
        One exception to the shared edge, and it is not this page's doing nor fixable from
-       here: the nine articles that carry a contents rail push their own page box right
-       between 1440 and 1584px, where a centred gutter cannot seat the rail's 240px floor.
-       This page has no rail and nothing to make room for, so it deliberately does not
-       follow - shifting it in sympathy would buy an empty 280px left gutter at 1440 for a
-       page with nothing to put in it. Measured delta, article title minus entry title, at
-       a 16px root: 72px at 1440, 48 at 1488, 24 at 1536, and 0.00px from 1584 up, at 1439
-       and below, and at every width for the 21 articles with no rail. Those are
-       layout-viewport widths, the same basis the Geometry note uses; a classic 15px
+       here: every article pushes its own page box right between 1440 and 1584px, where a
+       centred gutter cannot seat the contents rail's 240px floor. The article reserves
+       that gutter whether or not it paints a rail in it. This page has no rail and
+       nothing to make room for, so it deliberately does not follow - shifting it in
+       sympathy would buy an empty 280px left gutter at 1440 for a page with nothing to
+       put in it. Measured delta, article title minus entry title, at a 16px root: 72px at
+       1440, 48 at 1488, 24 at 1536, and 0.00px from 1584 up and at 1439 and below. Those
+       are layout-viewport widths, the same basis the Geometry note uses; a classic 15px
        scrollbar puts the band at 1440-1598 in window widths and the worst case at 79.5px,
        measured at a 1440px window. See the ══ Geometry ══ note in
        src/pages/writing/[year]/[slug].astro for why it was traded. */
@@ -97,12 +104,13 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     --rail-w: 4.5rem;      /* 72px date rail */
     --rail-gap: 1.5rem;    /* 24px  */
 
-    /* Type scale, as measured */
+    /* Type scale. The literals are as measured. tokens.css sets three of the hooks, which
+       replace their literals; the trailing notes on those three give both values. */
     --fs-small:  var(--wp-small,  clamp(0.6875rem, 0.688rem + ((1vw - 0.2rem) * 0.256), 0.875rem));  /* 11→14 */
     --fs-medium: var(--wp-medium, clamp(0.75rem,   0.75rem  + ((1vw - 0.2rem) * 0.342), 1rem));      /* 12→16 */
-    --fs-large:  var(--wp-large,  clamp(1rem,      1rem     + ((1vw - 0.2rem) * 0.342), 1.25rem));   /* 16→20 */
-    --fs-h5:     var(--wp-h5,     clamp(1.25rem,   1.25rem  + ((1vw - 0.2rem) * 0.342), 1.5rem));    /* 20→24 */
-    --fs-h1:     var(--wp-h1,     clamp(2.125rem,  2.125rem + ((1vw - 0.2rem) * 2.568), 4rem));      /* 34→64 */
+    --fs-large:  var(--wp-large,  clamp(1rem,      1rem     + ((1vw - 0.2rem) * 0.342), 1.25rem));   /* literal 16→20; --wp-large 16→19 */
+    --fs-h5:     var(--wp-h5,     clamp(1.25rem,   1.25rem  + ((1vw - 0.2rem) * 0.342), 1.5rem));    /* literal 20→24; --wp-h5 18→20 */
+    --fs-h1:     var(--wp-h1,     clamp(2.125rem,  2.125rem + ((1vw - 0.2rem) * 2.568), 4rem));      /* literal 34→64; --wp-h1 27→38 */
     --fs-kicker: var(--wp-kicker, clamp(0.63rem,   0.36vw + 0.54rem, 0.88rem));                      /* 10.08→14.08 */
 
     --lh-tight: 1.1;
@@ -124,7 +132,9 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
 
     --font-body:    var(--font-sans,  "Inter", "Pretendard", system-ui, sans-serif);
     --font-display: var(--font-serif, "Newsreader", "Pretendard", Georgia, serif);
-    /* Swapping this one line to var(--font-body) flips all 30 titles to sans. */
+    /* The one switch for the entry titles' face: var(--font-display) or var(--font-body).
+       fonts.css maps --font-serif and --font-sans to the same Lora stack today, so the
+       choice only shows if the two ever differ. */
     --index-title-font: var(--font-display);
 
     container: index / inline-size;
@@ -135,19 +145,12 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
   }
 
   /* Masthead.
-     Flush with the page box, NOT indented onto the entry column. It used to carry the
-     same `padding-left: --rail-w + --rail-gap` the year kickers and the entries carry,
-     which put "Writing" 96px in from the left edge — so this was the one section index
-     whose title did not start where /papers/, /talk/ and /code/ start theirs. Reading
-     the four in a row, /writing/ was visibly the odd one, and the h1 is the last thing
-     that should be telling you which page you are on by moving.
-
-     The 96px indent still belongs to everything below it: the year kicker and the entry
-     titles hang off the 72px date rail, and that column is the page's spine. The
-     masthead is not in that column — it is the page's own name, addressed to the shell,
-     not a row in the list — so it takes the shell's edge. Measured after the change at a
-     1700px window: 330.5px for the h1 on all four section indexes, against 426.5 here
-     before it. */
+     The h1 is .sr-only (see the note beside it in the markup), so none of this paints.
+     It is flush with the page box, NOT indented onto the entry column. The 96px indent
+     belongs to what hangs off the 72px date rail: the year kickers and the entry titles,
+     the column that is the page's spine. The masthead is not in that column — it is the
+     page's own name, addressed to the shell, not a row in the list — so it takes the
+     shell's edge, the edge /papers/, /talk/ and /code/ start from. */
 
   .index__title {
     margin: 0;
@@ -187,7 +190,7 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     color: var(--ppc-text);
   }
 
-  /* Signature motif, used once per year heading — three times on this page. */
+  /* Signature motif, used once per year heading. */
   .year__label::before {
     content: "";
     display: block;
@@ -242,12 +245,12 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     text-wrap: balance;
   }
 
-  /* Focus moving backwards (Shift+Tab) scrolls the link only just into view, and the sticky
-     year label above covered it and the row's focus ring completely. The margin is the
-     label's own height (padding, rule, rule's gap, one line) plus the row's padding, plus
-     1rem for the ring (3px offset, 2px outline) and for the link's inline box sitting a
-     little inside its taller line; with only the ring's 5px, the ring's top still touched
-     the label. Below 36rem the date sits above the title in the row, and the container
+  /* Focus moving backwards (Shift+Tab) scrolls the link only just into view, where the
+     sticky year label above would cover it and the row's focus ring completely. The margin
+     is the label's own height (padding, rule, rule's gap, one line) plus the row's padding,
+     plus 1rem for the ring (3px offset, 2px outline) and for the link's inline box sitting
+     a little inside its taller line; with only the ring's 5px, the ring's top would still
+     touch the label. Below 36rem the date sits above the title in the row, and the container
      rule adds its line. */
   .entry__title a {
     color: inherit;
@@ -264,54 +267,30 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
     inset: 0;
   }
 
-  /* The row is still the trigger, and the hit area above is untouched: the rule is drawn
-     by .hover-wipe (base.css) on the link's own background, not by a second pseudo-element,
-     because ::before is already spent on the full-row hit box.
-
-     This is the site that decided the technique. Korean titles wrap here and nowhere on
-     this page is the column wide enough to stop them: 5 entries wrap at 320, 2 at 375, 1
-     at 430, none from 768 up. An absolutely positioned bar -- the header's own method --
-     would draw one rectangle under the last line at the width of the widest, i.e. a bottom
-     border on the title block. `box-decoration-break: clone` gives each line fragment its
-     own rule, each opening from its own centre: the worst case at 375 is 235.44 x 48.33
-     over 2 fragments of 186.45 and 235.44, and it gets two rules of those widths.
-
-     `clone` is documented to disable `text-wrap: balance`, which these titles use, so it
-     was A/B'd rather than assumed: every entry's box, fragment count, fragment widths and
-     the document height are identical with `clone` and with `slice` at 320, 375, 430 and
-     768. The balancer only diverges in columns narrower than this page ever gets.
-
-     No --wipe-y. The background's 100% is the padding-box bottom, which lands 3px under a
-     20px baseline -- the same row `text-underline-offset: 0.14em` was putting it on, so
-     the rule does not move at all here, it only acquires the motion.
-
-     What does change is colour: from-font black becomes --crimson, which is what "like the
-     header" means and is the first accent on this index. A 2px rule is a non-text element
-     needing 3:1; crimson measures 7.25:1 on --page-bg. */
-  @media (hover: hover) {
-    /* The row wash used to sit outside this gate while the rule under the title sat inside
-       it. On a touch screen :hover latches after a tap, so a tapped row kept its wash until
-       the next tap elsewhere while the title's rule did not — one half of the row's hover
-       state stuck to it and the other half did not. Both halves are the same gesture and
-       now share the same gate. */
-    .entry:hover { background-color: var(--ppc-wash); }
-    .entry:hover .entry__title a { color: var(--crimson); }
-  }
-  /* Keyboard parity, which this row never had: the outline below marks the row, and this
-     marks the title the same way the pointer does. Outside the gate on purpose.
-     The row hit area is re-measured after the change and unmoved: 1024 x 61, with all
-     four corners and the centre hit-testing to the link through the ::before above. */
-  /* Hover is a colour step, not a rule. The reference draws its animated underline in one
+  /* The row is the trigger, through the full-row hit box on `.entry__title a::before`:
+     hovering anywhere on it washes the row and turns the title from --ink to --crimson,
+     which measures 6.42:1 on the wash.
+     Hover is a colour step, not a rule. The reference draws its animated underline in one
      place only - the header nav - and every link in the body of a page, its writing index,
      its code list and even its year rail, simply lifts from rgb(160,32,32) to
      rgb(192,48,48) with no decoration at all. Measured over CDP on all three. */
+  @media (hover: hover) {
+    /* The wash and the title's colour are one gesture, so they share one gate. On a touch
+       screen :hover latches after a tap, and either half left outside the gate would stay
+       on a tapped row until the next tap elsewhere while the other half did not. */
+    .entry:hover { background-color: var(--ppc-wash); }
+    .entry:hover .entry__title a { color: var(--crimson); }
+  }
+  /* Keyboard parity: the outline on `.entry__title a:focus-visible::before` marks the
+     row, and this marks the title the same way the pointer does. Outside the gate on
+     purpose: it is the keyboard path. */
   .entry__title a:focus-visible { color: var(--crimson); }
 
-  /* Forced colours drop background-image, so the wipe is not painted there at all and the
-     colour step is overridden too -- see the note beside .hover-wipe in base.css. The
-     underline this rule replaced is what that mode can still draw, so it comes back here
-     and only here. Written in this file rather than in base.css because Astro scopes a
-     page rule on every compound, which outranks the same selector written globally. */
+  /* Forced colours force `color` to the system colours at rest and on hover alike, so
+     the colour step above does not show in that mode. An underline is what the mode can
+     still draw, so hover and focus get one here and only here. Written in this file
+     rather than in base.css because Astro scopes a page rule on every compound, which
+     outranks the same selector written globally. */
   @media (forced-colors: active) {
     .entry__title a:focus-visible { text-decoration: underline; text-underline-offset: 0.14em; }
   }
@@ -338,7 +317,7 @@ const ko = posts.some((p) => hasHangul(p.data.title, p.data.deck));
   }
 
   /* Folds when the rail no longer fits.
-     The page title is .sr-only and its wrapper is gone, so there is nothing here to un-indent. */
+     The page title is .sr-only and carries no indent, so it has nothing to un-indent here. */
   @container index (max-width: 36rem) {
     .index__empty,
     .year__label { padding-left: 0; }

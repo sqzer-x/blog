@@ -8,12 +8,12 @@ const entry = await getEntry('about', 'about');
 assertRendered(entry!);
 const { Content } = await render(entry!);
 
-/* Ask the body, not the metadata. This used to matter because about.md was an English
-   document with one Korean line in it — 14 Hangul syllables that no title or description
-   would have revealed, against a 118KB Korean face. The rewritten about.md is English
-   throughout, so the answer is false today and the page fetches no Korean font. The test
-   stays because the answer is the body's to give: one Korean sentence added here starts
-   needing that face again, and nothing else in this file would notice. */
+/* Ask the body, not the metadata. The title and description below are English whatever
+   about.md says, so only the body can tell whether the page needs the 118KB Korean face.
+   about.md is English throughout today, so the answer is false and the page fetches no
+   Korean font. The test stays because the answer is the body's to give: one Korean line
+   added to about.md starts needing that face, and nothing else in this file would
+   notice. */
 const ko = hasHangul(entry!.body);
 ---
 <Base
@@ -22,23 +22,23 @@ const ko = hasHangul(entry!.body);
   ko={ko}
 >
   {/* about.md is running prose with no headings, the shape the reference's own home page
-      uses, so nothing in the body is a top-level heading any more. The bar's left slot
-      prints the name but it is a <span>, not a heading — so the page needs one here or it
-      has no h1 at all, which was already true when the body opened with `# whoami`
-      (satteriProse demotes it to h2). Visually hidden for the same reason as the other
-      section pages: the reference prints no page title either. */}
+      uses. The bar's left slot prints the name but it is a <span>, not a heading — so the
+      page needs one here or it has no h1 at all. A `#` heading in the body would not
+      serve either: satteriProse demotes it to h2. Visually hidden for the same reason as
+      the other section pages: the reference prints no page title either. */}
   <h1 class="sr-only">About</h1>
   <article class="about"><Content /></article>
 </Base>
 
-<!-- is:global for the same reason the article page uses it: the elements <Content />
-     emits carry no scope id, so a scoped selector would miss every one of them. -->
+{/* is:global for the same reason the article page uses it: the elements <Content />
+    emits carry no scope id, so a scoped selector would miss every one of them. */}
 <style is:global>
-  /* about.md used to print three bare URLs, the longest 40 characters with no space
-     in it. Left unbroken it set the page's minimum width and `/` scrolled sideways on
-     every phone - 383px of content in a 320px viewport. The article page already
-     carries this pair on .prose; the home page had no equivalent rule because it is
-     the one page that renders <Content /> without that wrapper. */
+  /* The pair the article page carries on .prose, restated here because this is the one
+     page that renders <Content /> without that wrapper. keep-all is the house rule
+     wherever Korean can appear. The break rules at the end of this block
+     (`.about :is(p, li, h1, h2, h3, h4)` and `.about a`) are the escape for a long
+     unbroken token such as a bare URL: left unbroken it sets the page's minimum width,
+     and `/` scrolls sideways on a phone. */
   .about { word-break: keep-all; }
 
   /* The portrait, set the way the reference sets its own: floated to the inline end with
@@ -47,13 +47,13 @@ const ko = hasHangul(entry!.body);
      than a class the author would have to remember to type in markdown.
 
      Two things it buys beyond looking composed. It pulls the reading measure in from the
-     full 1024px this page gets — 4.3 words a line narrower over the paragraphs it passes,
-     which is the direction this page's line length wanted to move anyway. And the 4:5
-     portrait keeps its own aspect from the width/height satteriProse stamps on the <img>,
-     so nothing reflows when it loads.
+     full 1024px this page gets over the paragraphs it passes, which is the direction this
+     page's line length wanted to move anyway. And the 4:5 portrait keeps its own aspect
+     from the width/height satteriProse stamps on the <img>, so nothing reflows when it
+     loads.
 
-     Below 40rem the float comes off: a 232px picture beside a 300px column leaves neither
-     enough room, and the reference drops its own block to full width at a similar point. */
+     Below 40rem the float comes off: the picture and the column beside it would both be
+     too narrow, and the reference drops its own block to full width at a similar point. */
   .about > .fig:first-child {
     float: inline-end;
     inline-size: min(14.5rem, 34%);
@@ -62,8 +62,8 @@ const ko = hasHangul(entry!.body);
   }
   .about > .fig:first-child img { inline-size: 100%; block-size: auto; }
 
-  /* Clears the float so the footer's rule and anything after the prose cannot ride up
-     beside the picture on a short viewport. */
+  /* Clears the float so the footer, and anything else after the prose, cannot ride up
+     beside the picture when the prose beside it ends first. */
   .about::after { content: ""; display: block; clear: both; }
 
   @media (max-width: 40rem) {

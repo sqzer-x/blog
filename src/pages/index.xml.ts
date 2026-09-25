@@ -5,14 +5,13 @@ import { byHugoOrder, postUrl } from '../lib/order';
 import { excerpt } from '../lib/prose';
 
 /**
- * The feed, at the one address the site has always claimed.
+ * The feed, at the one address the site has always claimed, and the one every page's
+ * <head> advertises: Base.astro prints `<link rel="alternate" type="application/rss+xml"
+ * title="sqzer" href="/index.xml">` on every page, so this file is what
+ * answers a reader who subscribes from any of them.
  *
- * Every page's <head> has carried `<link rel="alternate" type="application/rss+xml"
- * href="/index.xml">` since the migration, and nothing answered it — a reader who
- * subscribed got a 404 from a link the site itself printed. This is that file.
- *
- * One feed, not one per section: the section feeds the Hugo site shipped were dropped
- * deliberately, and a blog that publishes into a single stream has nothing to split.
+ * One feed, not the per-section feeds the Hugo site shipped: a blog that publishes into
+ * a single stream has nothing to split.
  *
  * Ordering and addresses come from src/lib/order.ts rather than being restated here, so
  * the feed cannot drift from the Writing index. Descriptions reuse the same excerpt()
@@ -42,7 +41,7 @@ export async function GET(context: APIContext) {
     items: posts.map((p) => ({
       title: p.data.title,
       // Dates are stored YYYY-MM-DD and read as UTC everywhere on this site; parsing them
-      // in local time moves half the corpus back a day.
+      // in local time would move every pubDate back a day on a build machine east of UTC.
       pubDate: new Date(`${p.data.date}T00:00:00Z`),
       description: asHtmlText(p.data.deck ?? excerpt(p.body ?? '')),
       link: postUrl(p),
