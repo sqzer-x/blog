@@ -547,36 +547,35 @@ const ld = {
      from started — measured 0.00px apart at 320 / 768 / 1024 / 1584 / 1700 / 1920, on
      every article.
 
-     The exception is a width band, 1440 to 1584px, and it is now the same for all 30
+     The exception is a width band, 1440 to 1584px, and it is the same for all 30
      articles. There the rail's 240px floor does not fit in a centred gutter, so
      `main:has(.post-shell)` pushes the page box right far enough to make it fit and the
      two edges part: measured 72px at 1440, 48 at 1488, 24 at 1536, 0 from 1584 up and 0
      below 1440, where the rail is parked and the inline list is the contents. Those are
      layout-viewport widths, so a classic 15px scrollbar shifts the whole band 15px out
-     and the true worst case is 79.5px, at a 1440px window. It was traded knowingly — the
-     alternative to the shift was to withhold the rail entirely across that 144px band —
+     and the true worst case is 79.5px, at a 1440px window. It is a deliberate trade — the
+     alternative to the shift is to withhold the rail entirely across that 144px band —
      and the cost is bounded by arithmetic rather than by a literal: --page-left is a
      max() against the centred position, so the moment the gutter can seat the rail on its
      own the shift is exactly zero and never negative. The gutter is reserved whether or
-     not a rail is painted in it, so moving from a post with contents to one without no
-     longer steps the left edge. See the rail block below for
+     not a rail is painted in it, so moving from a post with contents to one without does
+     not step the left edge. See the rail block below for
      the geometry, the --w-content note in tokens.css and the --content-w note in
      src/pages/writing/index.astro for the other two ends of the same edge.
 
-     Inside that band the site header no longer follows the page box. It used to — the
-     article template restated base.css's header padding against --page-left — and the
-     price was a bar that slid ~50px right and went asymmetric on article pages and
-     nowhere else. The bar is fixed on every route now, so across the band the wordmark
-     stays on the centred edge while the page box leaves it. Measured, page box minus
-     wordmark, at a real window with a classic scrollbar: 79.5px at 1440, 49.5 at 1500,
-     7.5 at 1584, 0.00 at 1700 / 1920 / 2560 and 0.00 at 1262 and below. It is the same
-     shift already quoted above, now read against the bar instead of against the index.
-     The rail block below has the argument; base.css has the contract.
+     Inside that band the site header does not follow the page box. Restating base.css's
+     header padding against --page-left would make the bar slide right and go asymmetric
+     on article pages and nowhere else, so the bar stays where it is on every route, and
+     across the band the wordmark stays on the centred edge while the page box leaves it.
+     Measured, page box minus wordmark, at a real window with a classic scrollbar: 79.5px
+     at 1440, 49.5 at 1500, 7.5 at 1584, 0.00 at 1700 / 1920 / 2560 and 0.00 at 1262 and
+     below. It is the same shift already quoted above, read against the bar instead of
+     against the index. The rail block below has the argument; base.css has the contract.
 
      `scrollbar-gutter: stable` on the root does not change any number in this block — a
      classic scrollbar still takes its 15px out of the layout viewport, which is why the
      worst case is at 1440 and why the shift is not yet 0 at a 1584px window. What it
-     changes is that the four short pages now lose the same 15px, so the header's own
+     changes is that pages too short to scroll lose the same 15px, so the header's own
      centring is computed from one width across the site instead of two.
 
      Nothing breaks out of the edge on the page's own side: the rail lives outside .post
@@ -588,12 +587,13 @@ const ld = {
 
     /* Korean leading. Measured from the shipped fonts: a Pretendard syllable advances
        0.8643em, times KoBody's 94.29% size-adjust = 0.8149em, so the 928px column holds
-       59.9 syllables at 19px (Lora averages 100.4 Latin characters on a wrapped line
-       there). Hangul also fills a 0.840em ink band on every character, where Lora's
-       lowercase mostly occupies its 0.500em x-height and only the occasional ascender or
-       descender reaches the 1.031em extreme - so at 1.6 the Korean line loses about a
-       third of its interline white. 1.75 returns most of it. 1.90 would equalise it, at
-       the price of a 24px paragraph gap no longer reading as a gap. */
+       71.2 syllables at 16px (Lora averages about 110 Latin characters on a wrapped line
+       there, measured on the two English essays). Hangul also fills a 0.840em ink band on
+       every character, where Lora's lowercase mostly occupies its 0.500em x-height and
+       only the occasional ascender or descender reaches the 1.031em extreme - so at 1.6
+       the Korean line loses about a third of its interline white. 1.75 returns nearly half
+       of it. 1.90 would equalise it, at the price of the --sp-para gap between paragraphs
+       no longer reading as a gap. */
     --lh-ko: 1.75;
 
     display: grid;
@@ -606,9 +606,9 @@ const ld = {
 
   /* The query container is this wrapper, not `.post` itself. An element cannot be
      styled by a container query it establishes, so with `container-type` on `.post`
-     the rail-collapse block below reached every descendant but never `.post`: the
-     children moved to column 1 while the columns stayed `72px minmax(0, 1fr)`, and
-     the whole article rendered 72px wide on any viewport under ~623px. */
+     the rail-collapse block below would reach every descendant but never `.post`: the
+     children would move to column 1 while the columns stayed `72px minmax(0, 1fr)`, and
+     the whole article would render 72px wide on any viewport under ~623px. */
   .post-shell { container: post / inline-size; }
 
   /* ══ Header ══════════════════════════════════════════════════════════════
@@ -622,37 +622,38 @@ const ld = {
           off .article-header__meta::before; this site's index already hangs it above
           the year kicker, and matching the index matters more than matching the
           Gazette's internal placement — it is the mark you just clicked away from.
-       2. air above it and 64px below the meta. An opening gap wider than any gap inside
-          the body (48px) is what actually says "the header ended".
-       3. the title at --fs-h1. Not --fs-h1-large: measured over the real 30 titles,
-          88px puts 6 of them on three lines and 2 on four (387px of headline), and all
-          8 are Korean — the large step would systematically punish the 21 Korean
-          titles. At 64px the worst case is three lines and the median is two.
+       2. air above it and --sp-64 below the byline. An opening gap wider than the
+          body's 48px block rhythm is what actually says "the header ended".
+       3. the title at --fs-h1, not --fs-h1-large. Measured over the real 30 titles: at
+          --fs-h1 every one sets on a single line from 1024 up and the worst at 375 is
+          three lines, on one title; --fs-h1-large pushes four more titles onto a second
+          line at 375 and still sets one on three.
 
-     How much air, and why it is smaller than it was. The number that matters is not this
-     padding but the distance from the bar's bottom rule to the 4px mark, and this padding
-     is only the second half of it: `main` already opens with --sp-64 above anything an
-     article draws. At --sp-80 the two stacked to a measured 138.5px at 1700 and 133.5 at
-     1500, under a bar 59.9px tall — two large steps of nothing before the first ink,
-     which is what reads as a hole rather than as an opening.
+     How much air. The number that matters is not this padding but the distance from the
+     bar's bottom rule to the 4px mark, and this padding is only the second half of it:
+     `main` already opens with --sp-64 above anything an article draws. At --sp-80 the two
+     stack to about 138px at 1700 and 133 at 1500, under a bar about 60px tall — two
+     large steps of nothing before the first ink, which is what reads as a hole rather
+     than as an opening.
 
      Measured on the reference at 1700, from the bottom of the bar above it to the top of
      its own article header: 0px on three of its five story styles (split-screen,
      fullscreen, full-width-text-below — the header simply begins against the bar) and 94
      to 158px on the two classic ones, which hang an eyebrow block in the gap. Its heading
      lands 89.5 / 118.2 / 137.7 / 201.7px below the bar across those styles. So the
-     reference's own answer spans from flush to roughly what this page was already doing,
-     and the low end of it is where a header with no picture belongs.
+     reference's own answer spans from flush to roughly what --sp-80 would give, and the
+     low end of it is where a header with no picture belongs.
 
      --sp-32 puts the total at a measured 94.8px at 1700 and 93.8 at 1500 — the
-     reference's classic figure, a 43.7px lift, and still about twice the 48px block
-     rhythm inside the body, so point 2 above survives intact. It is not collapsed to
-     nothing: 94px of quiet above a 4px rule is an opening, 0px would make the rule read
-     as part of the bar. Measured across the range, header rule to the top of the kicker's
-     mark: 64.0 at 320, 74.7 at 768, 81.6 at 1024, 88.1 at 1262, 92.9 at 1440, 93.8 at
-     1500, 94.2 at 1584, 94.8 at 1700, 95.9 at 1920, 96.0 at 2560. The 320 end is both
-     clamps at their floor, which is right where the bar is 52px tall and the rail has
-     collapsed — the wrapped header wants less air above it, not the same. */
+     reference's classic figure, a 43.3px lift from --sp-80, and still about twice the
+     48px block rhythm inside the body, so point 2 above survives intact. It is not
+     collapsed to nothing: 94px of quiet above a 4px rule is an opening, 0px would make
+     the rule read as part of the bar. Measured across the range, header rule to the top
+     of the kicker's mark: 64.0 at 320, 74.7 at 768, 81.6 at 1024, 88.1 at 1262, 92.9 at
+     1440, 93.8 at 1500, 94.2 at 1584, 94.8 at 1700, 95.9 at 1920, 96.0 at 2560. The 320
+     end is both clamps at their floor, which is right where the bar has folded onto two
+     rows and the date rail has collapsed — the wrapped header wants less air above it,
+     not the same. */
   .post__head {
     display: grid;
     grid-template-columns: subgrid;
@@ -672,7 +673,9 @@ const ld = {
     font-variant-numeric: tabular-nums;
     color: var(--ppc-text);
   }
-  /* The signature motif. Twice per page at most: here, and on a thematic break. */
+  /* The signature motif, a 4px rule in --ppc-ui. This page draws it here, on each
+     thematic break, above the footnotes, beside a code plate's language label, under table
+     headers, and as the contents rail's current-entry mark. */
   .post__kicker::before {
     content: "";
     display: block;
@@ -680,21 +683,12 @@ const ld = {
     border-block-start: 4px solid var(--ppc-ui);
     margin-block-end: var(--sp-40);
   }
-  /* The header nav's wipe, via .hover-wipe in base.css. Neither of these two ever wraps
-     ("Writing" and a four-digit year), but they take the same shared rule as everything
-     else rather than a private copy of the absolute-bar technique.
-     This is the one site whose rule sits lower than the padding-box bottom, and the way to
-     do that is padding, not --wipe-y: the background is clipped to the border box, so a
-     position past 100% paints nothing. Measured, when this was written as
-     `calc(100% + 0.14em)`: the rule disappeared completely. `padding-block-end` moves the
-     box the background is clipped to, and on an inline box it changes no line box and no
-     layout: A/B'd with it removed, .post__kicker, .post__title, .post__byline and .prose
-     and the document height are identical to three decimals at 1700 and at 375, and the
-     only number that moves is this link's own border box, 19.97 -> 18.00.
-     0.14em is the 2px that puts the rule back where `text-underline-offset: 0.3em` had it,
-     4px under the baseline -- the deepest offset on the site, because this line is
-     uppercase with 1.68px of tracking and the rule has to clear the caps, not an
-     x-height. */
+  /* No rule under these two, at rest or on hover: hover and focus are the colour step
+     below. `padding-block-end` therefore paints nothing, and on an inline box it changes
+     no line box and no layout: A/B'd with it removed, .post__kicker, .post__title, .prose
+     and the document height are identical at 1700 and at 375, and the only number that
+     moves is this link's own border box, 19.97 -> 18.00 at 1700. What that box still
+     carries is the focus ring and the hit area, which reach 0.14em further down. */
   .post__kicker a { color: inherit; text-decoration: none; padding-block-end: 0.14em; }
   /* Hover is a colour step, not a rule. The reference draws its animated underline in one
      place only - the header nav - and every link in the body of a page, its writing index,
@@ -705,10 +699,9 @@ const ld = {
     .post__kicker a:hover { color: var(--crimson); }
   }
 
-  /* Forced colours drop background-image, so the wipe is not painted there and the colour
-     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
-     this rule replaced is what that mode can still draw, so it comes back here, with the
-     offset it carried before. */
+  /* Forced colours override `color` at rest and on hover alike, so the colour step above
+     paints nothing there. An underline is what that mode can still draw, so it is the
+     hover and focus mark here, 0.3em down to clear this line's tracked capitals. */
   @media (forced-colors: active) {
     .post__kicker a:focus-visible { text-decoration: underline; text-underline-offset: 0.3em; }
   }
@@ -717,37 +710,31 @@ const ld = {
   }
   .post__sep { margin-inline: 0.35em; color: var(--page-hairline); }
 
-  /* The date sits in the byline now, not out in the rail.
-     It used to be `09.08` in the 72px date column with the year three lines above it in
-     the kicker, which split one date across two places and printed neither of them whole.
-     The reference puts the whole thing on the byline: `by <b>name</b>` then a 2em gap then
-     the date in a muted grey, and that is the shape reproduced here. The format is the
-     reader's, not the reference's — it writes 2025-01-05 where this writes
-     "September 8, 2026" — so longDate() supplies the text and `datetime` keeps the ISO
-     form for machines. longDate is pinned to UTC; parsing these in local time moves half
-     the corpus back a day.
+  /* The date sits in the byline, whole, not out in the rail. `09.08` in the 72px date
+     column with the year three lines above it in the kicker would split one date across
+     two places and print neither of them whole. The reference puts the whole thing on the
+     byline: `by <b>name</b>` then a 2em gap then the date in a muted grey, and that is the
+     shape reproduced here. The format is not the reference's — it writes 2025-01-05
+     where this writes "September 8, 2026" — so longDate() supplies the text and
+     `datetime` keeps the ISO form for machines. longDate is pinned to UTC; reading these
+     dates in a local time zone can shift them by a day.
 
-     tabular-nums is gone with the rail: it lined up a column of MM.DD, and there is no
-     column here. */
+     No tabular-nums: there is no column of dates here to line up. */
   .post__date {
     padding-inline-start: 2em;     /* the reference's own gap between name and date */
     white-space: nowrap;
   }
 
-  /* Stays in the measure column, on the entry title's edge — it does NOT follow the index's
-     own <h1>, which was just pulled out to the page box's left edge so that /writing/ opens
-     on the same line /papers/, /talk/ and /code/ open on. The two are different headings.
-     "Writing" names the page and answers to the word the bar prints above it; this one is
-     the entry you clicked, and it lands where that entry title was — measured 0.00px apart
-     at 320 / 768 / 1024 / 1700 / 1920, and apart only inside the rail's 1440–1584 band.
-     Moving it alone would also part it from its own kicker, byline and first paragraph,
-     which are all in this column; moving the whole header out would give the article two
-     left edges, one for the header and one for the body under it.
+  /* Stays in the measure column, on the entry title's edge. This heading is the entry you
+     clicked, and it lands where that entry title was on the Writing index — measured
+     0.00px apart at 320 / 768 / 1024 / 1700 / 1920, and apart only inside the rail's
+     1440–1584 band. Moving it alone would also part it from its own kicker, byline and
+     first paragraph, which are all in this column; moving the whole header out would give
+     the article two left edges, one for the header and one for the body under it.
 
-     The cost, stated rather than hidden: this <h1> does not share the header's left edge,
-     where all four section index titles now do. Measured, wordmark to title: 96px at 1700,
-     and 175.5px at a 1440px window, where the page box is pushed right for the rail and
-     the bar stays put. */
+     The cost, stated rather than hidden: this <h1> does not share the header's left edge.
+     Measured, wordmark to title: 96px at 1700, and 175.5px at a 1440px window, where the
+     page box is pushed right for the rail and the bar stays put. */
   .post__title {
     grid-row: 2;
     margin-block: var(--sp-24) 0;     /* .article-header h1 { margin: spacing-24 0 } */
@@ -758,7 +745,8 @@ const ld = {
 
   /* Empty on all 30 posts today. The synthesised excerpt is deliberately NOT printed
      here: it is the article's own first sentence, and showing it directly above that
-     same sentence is a duplication the reader sees at once. It goes to <meta> only. */
+     same sentence is a duplication the reader sees at once. It goes to the metadata only:
+     <meta name="description">, the JSON-LD and the feed. */
   .post__deck {
     margin-block-start: var(--sp-24);
     font-family: var(--font-display);
@@ -769,13 +757,11 @@ const ld = {
     text-wrap: pretty;
   }
 
-  /* The retired .post__meta rule, minus its `font-variant-numeric: tabular-nums` — that
-     line was there for the digit in "10 min read" and a byline has no digits in it. The
-     rest is unchanged, so the line sits exactly where the reading time sat and nothing in
-     the header's geometry moved. The name carries the weight and the page's own ink, the
-     way the reference sets its byline (`by` plain, the name at 600 in its own colour);
-     700 rather than 600 because that is this site's one strong weight and Lora ships it.
-     `by` stays at --page-meta, so the two read as label and value. */
+  /* No tabular-nums: the only digits here are the date's, set in running text with no
+     column to line up. The name carries the weight and the page's own ink, the way the
+     reference sets its byline (`by` plain, the name at 600 in its own colour); 700 rather
+     than 600 because that is this site's one strong weight and Lora ships it. `by` stays
+     at --page-meta, so the two read as label and value. */
   .post__byline {
     margin-block-start: var(--sp-24);
     font-size: var(--fs-small);
@@ -788,8 +774,8 @@ const ld = {
   /* ══ Contents ════════════════════════════════════════════════════════════
      14 of the 30 posts carry one today and the design assumes all 30 eventually will (see
      the note beside showToc). It has two presentations and exactly one of them is on at
-     any viewport width: the fixed rail in the left gutter above 1440px, this collapsed
-     inline list below it. The switch is a single media query further down, which turns one
+     any viewport width: the fixed rail in the left gutter from 1440px up, this collapsed
+     inline list below that. The switch is a single media query further down, which turns one
      on and the other off in the same block, so "both" and "neither" are not reachable
      states — and the hairline beside the rail is generated in that same block, so it
      cannot outlive the thing it marks either.
@@ -811,21 +797,21 @@ const ld = {
   }
   .toc__list { margin: var(--sp-40) 0 var(--sp-30); padding: 0; list-style: none; }
   /* keep-all, for the same reason the rail below declares it: 12 of the 14 posts that
-     carry contents are Korean — it was all nine of them before the gate widened — and a
-     Korean line breaks between word units, never inside one. keep-all behaves as `normal`
-     for the Latin headings of the other two, so one declaration still covers both.
-     This list sits beside .prose rather than inside it, so it inherited nothing from the
-     .prose rule further down and defaulted to `word-break: normal`. Measured before this
-     line existed, over the 123 entries the nine posts then had: the longest heading (73
-     characters, on the cognitive-dissonance post) broke inside a Korean word at 320px and
-     again at 768px. Those are two of the three widths at which any entry wraps at all - 6
-     wrapping entries at 320, 3 at 375, 1 at 768, none from 1024 up - so the defect was
-     rare only because the wrapping was.
+     carry contents are Korean, and a Korean line breaks between word units, never inside
+     one. keep-all behaves as `normal` for the Latin headings of the other two, so one
+     declaration still covers both.
+     This list sits beside .prose rather than inside it, so it inherits nothing from the
+     .prose rule further down and would default to `word-break: normal`. Without this
+     line the longest heading (73 characters, on the cognitive-dissonance post) breaks
+     inside a Korean word at phone and tablet widths, and two more on the same post do at
+     375. Wrapping itself is rare - at layout widths of 320, 375, 430 and 768 with no
+     classic scrollbar, 6, 3, 2 and 1 of the 136 entries wrap, and none from 1024 up - so
+     the defect is rare only because the wrapping is.
 
      break-word is the escape valve and never has to fire: at 320, where the box is
      narrowest, the widest segment keep-all refuses to break is 72.1px of Hangul, or
-     92.5px counting the one Latin filename among the 123, against a 256px text box.
-     Measured after: 0 in-word breaks and 0 overflow at 320 / 375 / 768 / 1024 / 1439. */
+     92.5px counting the one Latin filename among the headings, against a 256px text box.
+     Measured with it: 0 in-word breaks and 0 overflow at 320 / 375 / 768 / 1024 / 1439. */
   .toc__item {
     margin-block-start: 0.4rem;
     font-size: var(--fs-medium);
@@ -833,25 +819,18 @@ const ld = {
     word-break: keep-all;
     overflow-wrap: break-word;
   }
-  /* One step per level, off this document's own top level - see tocLevel(). The retired
-     rule keyed on `data-depth="3"` and was exactly equivalent while the filter stopped at
-     depth 3; now that it reaches one deeper it would not be, because h3 and h4 would share
-     an indent. That flattens tso's six ### subsections onto their ## parents, and
-     sysmon's seven and journalctl's four with them. */
+  /* One step per level, off this document's own top level - see tocLevel(). A rule keyed
+     on `data-depth="3"` would only be equivalent while the filter stopped at depth 3; the
+     list reaches one level deeper, where h3 and h4 would share an indent. That would
+     flatten tso's six ### subsections onto their ## parents, and sysmon's seven and
+     journalctl's four with them. */
   .toc__item[data-level="1"] { padding-inline-start: var(--sp-40); }
   .toc__item[data-level="2"] { padding-inline-start: calc(2 * var(--sp-40)); }
-  /* Headings here wrap from 768 down -- counted over all 136 contents entries in the
-     corpus: 1 wraps at 768, 2 at 430, 5 at 375, 10 at 320, and at 320 three of them take a
-     third line. That is why the rule is .hover-wipe's per-fragment background and not an
-     absolute bar: each line gets its own rule opening from its own centre, measured at 3
-     rules of 221 / 231 / 156px on the worst of them. The 1px of padding puts the rule on
-     the row the auto underline
-     had at 1024 (top 401.53) and one row below it at 768, which is the right way to miss
-     by a pixel: these headings are the most Latin text on the page -- DoH(DNS over HTTPS),
-     journalctl, sysmon -- and the rule can no longer skip their descenders, so the pixel
-     is spent clearing them rather than crowding them. Same A/B as the kicker: .toc__item,
-     .toc__list, .prose and the document height unmoved, only the link's own box 19 -> 18.
-     Colour stays --page-fg at rest; the rule itself is crimson, like the header's. */
+  /* No underline at rest or on hover. The link is set in the page's ink, and hover and
+     focus are the colour step to --crimson, the same gesture as the kicker's. The 0.07em
+     of `padding-block-end` paints nothing; on an inline box it moves no line box, and
+     what it still extends is the link's own border box, which the focus ring and the hit
+     area follow. */
   .toc__item a { font-weight: 400; text-decoration: none; color: var(--page-fg);
     padding-block-end: 0.07em; }
   .toc__item a:focus-visible { color: var(--crimson); }
@@ -859,10 +838,9 @@ const ld = {
     .toc__item a:hover { color: var(--crimson); }
   }
 
-  /* Forced colours drop background-image, so the wipe is not painted there and the colour
-     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
-     this rule replaced is what that mode can still draw, so it comes back here, with the
-     offset it carried before. */
+  /* Forced colours override `color` at rest and on hover alike, so the colour step above
+     paints nothing there. An underline is what that mode can still draw, so it is the
+     hover and focus mark here. */
   @media (forced-colors: active) {
     .toc__item a:focus-visible { text-decoration: underline; }
   }
@@ -875,40 +853,38 @@ const ld = {
      to `left: -10em` under 80em. Same behaviour, positioned off this grid's own tokens
      rather than a hand-fitted em value.
 
-     The geometry is declared once, on :root, and four rules read it: the rail's own
-     inline-size, the page box's start margin, the header's padding, and — through those
-     last two rather than directly — the hairline that runs beside the rail. Nothing below
-     restates any of it, which is the whole reason those
-     four cannot drift apart.
+     The geometry is declared once, on :root, and three rules read it: the rail's own
+     inline-size, the rail's --toc-x inside the switch, and the page box's start margin.
+     The hairline that runs beside the rail reads only --toc-gap from it and otherwise
+     follows the page box through <main>. Nothing below restates any of it, which is the whole reason these
+     cannot drift apart.
 
-     `100%`, never `100vw`, and that is a bug fix rather than a preference. Every consumer
-     of these properties resolves a percentage against the initial containing block — the
-     fixed rail and its rule directly, <main> and <header> through the body's content box,
-     which is the same width — and the ICB excludes a classic scrollbar where `100vw`
-     includes it. Measured against the shipped formula with a real 15px scrollbar at 1440:
-     the rail claimed 168px of a 160.5px gutter, so the 16px of --toc-edge this file
-     promised was 8.5px on screen. Written in `100%` it is 16.00px with the scrollbar and
+     `100%`, never `100vw`. Every consumer of these properties resolves a percentage
+     against the initial containing block — the fixed rail directly, <main> through the
+     body's content box, which is the same width — and the ICB excludes a classic
+     scrollbar. `100vw` includes it unless the root carries `scrollbar-gutter: stable` and
+     the engine then drops the gutter from vw: base.css sets the property, but engines
+     differ on the second half, so the geometry does not hang on it. Without it, a real 15px scrollbar
+     at 1440 comes straight out of --toc-edge in a `100vw` formula and leaves the rail 1px
+     from the viewport edge. Written in `100%` the edge is 16.00px with the scrollbar and
      16.00px without.
 
      Where it sits. --page-left is the x of the page box's left edge and it is the larger
      of two demands: the centred position every other page uses, and whatever the rail
      needs in order to stand --toc-edge clear of the viewport. From 1584 up the centred
      position wins and the max() is inert; from 1440 to 1583 the rail wins and the page
-     box is pushed right, which is the shift. The rail is still laid into the gutter
-     inline-end first, --toc-gap clear of the date rail's left edge, so it stays pinned to
-     the page box rather than to the viewport: widen --w-content again and the rail slides
-     outward with the text instead of drifting over it.
+     box is pushed right, which is the shift. The rail is laid into the gutter inline-end
+     first, --toc-gap clear of the date rail's left edge, so it stays pinned to the page
+     box rather than to the viewport: widen --w-content and the rail slides outward with
+     the text instead of drifting over it.
 
-     Its width is a floor now, not a leftover, and that is the change. The old formula
-     handed the rail whatever a centred gutter had spare, which is 168px at the switch —
-     the width every wrapping figure in this file used to be quoted at, and the reason the
-     rail was too narrow to read. 240px is guaranteed wherever the rail is painted (see
-     .toc-rail__link for what decided the number), the gutter grows it to 320px where the
-     gutter is wide enough to pay for the growth out of empty space, and it is nowhere
-     narrower than the 256px it used to reach at its widest.
+     Its width is a floor, not a leftover. A centred gutter has only 168px to spare at the
+     switch, too narrow to read; 240px is guaranteed wherever the rail is painted (see
+     .toc-rail__link for what decided the number), and the gutter grows it to 320px where
+     the gutter is wide enough to pay for the growth out of empty space.
 
-     The clearance it must never lose is still geometric rather than hoped for, and now on
-     both sides. Its inline-end edge is --toc-gap from the page box by construction, since
+     The clearance it must never lose is geometric rather than hoped for, and on both
+     sides. Its inline-end edge is --toc-gap from the page box by construction, since
      `right` is written off --page-left and nothing else; its inline-start edge is exactly
      --toc-edge from the viewport whenever the rail is what set --page-left, and further in
      when the centred position did. The rail cannot reach the 72px date rail, let alone the
@@ -946,17 +922,16 @@ const ld = {
   }
 
   .toc-rail {
-    /* The rail's inline-end coordinate and its top. Both are local to this box now — the
-       hairline beside it is no longer a pseudo-element of the rail and reads neither (see
-       the rule block inside the switch). Anything that moves the rail still moves --toc-x
-       rather than `right`, so that the slide has one coordinate to interpolate.
+    /* The rail's inline-end coordinate and its top. Both are local to this box: the
+       hairline beside it is generated on <main> and reads neither (see the rule block
+       inside the switch). Anything that moves the rail moves --toc-x rather than `right`,
+       so that the slide has one coordinate to interpolate.
 
-       --toc-y is the rail's own top and nothing else's. It used to be the hairline's top
-       as well, which is what put the line 103-120px down a viewport whose header ends at
-       59.4px; the list keeps the inset because a list wants air under the header, and the
-       line does not because a line under a header is what the reader asked for. Measured
-       from the header's bottom border at 1440 / 1700 / 1920 / 2560: 43.8 / 52.7 / 60.4 /
-       60.4px of clearance to the cap height of CONTENTS. */
+       --toc-y is the rail's own top and nothing else's. The list keeps the inset because
+       a list wants air under the header; the line does not, because a line that starts
+       short of the header reads as cut off at its top. Measured from the header's bottom
+       border at 1440 / 1700 / 1920 / 2560: about 43 / 52 / 60 / 60px of clearance to the
+       top of the rail. */
     --toc-x: 100%;
     --toc-y: var(--sp-120);
 
@@ -974,17 +949,17 @@ const ld = {
     /* Distance is --page-left - --toc-gap, 256px at the switch. `visibility` interpolates
        as a step that counts as visible for any progress in (0,1), so one transition keeps
        the box painted for the whole slide out and shows it immediately on the way in.
-       The hairline no longer rides this: it is generated by the switch rather than moved
-       by it, so it appears and disappears at the boundary instead of travelling.
+       The hairline does not ride this: it is generated by the switch rather than moved by
+       it, so it appears and disappears at the boundary instead of travelling.
        prefers-reduced-motion is handled twice over: the global rule at the foot of
        base.css kills every transition with !important, and the local rule below says so
        where a reader of this block will look. */
     transition: right 0.45s ease, visibility 0.45s;
 
-    /* The box stays exactly as tall as its list, capped at the viewport. Widening it to
-       240px took most of the overflow out: measured at 1440x900, where the box has 754px
-       of room, the lists that scroll inside themselves go from three at 168px to one at
-       240. The one left is how-to-win, 1,014px of list, and it still scrolls at every rail
+    /* The box stays exactly as tall as its list, capped at the viewport. The 240px floor
+       takes most of the overflow out: measured at 1440x900, where the box has 754px of
+       room, the lists that scroll inside themselves go from three at 168px to one at 240.
+       The one left is how-to-win, 1,014px of list, and it still scrolls at every rail
        width measured up to 392px — so this is not decoration and neither is the
        scroll-spy's scrollIntoView. Capping the box rather than sizing it to the viewport
        is also what keeps the gutter under the list clickable (hit-tested at x = 200,
@@ -997,55 +972,51 @@ const ld = {
 
     /* No scrollbar, and no gradient in its place either.
 
-       The bar itself first: `scrollbar-width: thin` paints an 11px track with a
-       --sand-dark thumb hard against this box's inline-end edge, which is exactly where
-       the hairline is. Measured on how-to-win at 1700x860 before this line: thumb at
-       x = 299-304 (#eed6aa), rule at x = 306 (#b9b8ad), two verticals 2px apart running
-       the same 700px of gutter. At a glance that is a double rule, and the thinner of the
-       two is the one the design means. The other candidates do not survive the same look.
+       The bar itself first: a thin scrollbar paints an 11px track hard against this box's
+       inline-end edge, which is exactly where the hairline is. Measured on how-to-win at
+       1700x860 with `scrollbar-width: thin` and a --sand-dark thumb: thumb at
+       x = 299-304 (#eed6aa), rule at x = 306, two verticals 2px apart running the same
+       700px of gutter. At a glance that is a double rule, and the thinner of the two is
+       the one the design means. The other candidates do not survive the same look.
        Moving it (direction: rtl on the scrollport) parks the identical bar on the other
        edge, 16px off the viewport, where it has even less to belong to; restyling cannot
        make an 11px bar not a bar; and the need for it cannot be removed — how-to-win is
        1,014px of list against a 754px box at 1440x900, and 28 entries is the corpus's own
        worst case, not a hypothetical.
 
-       What stood here until now was .code pre's four-gradient overflow cue turned 90°: two
-       `local` masks in --page-bg that scroll with the list, two `scroll` shadows at
-       rgb(0 0 0 / 0.14) fixed to the box, the mask covering the shadow at whichever end
-       had no more list to show. It is gone because of what it looks like on a rail with no
-       plate under it. On .code pre the shadow falls on a --sand plate that is already a
-       surface, and it reads as depth; here it falls on the page ground, and 12px of black
-       at 14% across a 240px column reads as a grey band lying over the list — with the
-       list scrolled even a little, that band sits behind the word CONTENTS. Reported from
-       a screenshot, and the one complaint is enough: an overflow cue that has to be
-       explained is not one.
+       No gradient either. .code pre's four-gradient overflow cue, turned 90° for this box,
+       is two `local` masks in --page-bg that scroll with the list and two `scroll` shadows
+       fixed to the box, the mask covering the shadow at whichever end has no more list to
+       show. On .code pre the shadow falls on a --sand plate that is already a surface, and
+       it reads as depth; here it would fall on the page ground, where a 12px shadow across
+       a 240px column reads as a grey band lying over the list — with the list scrolled
+       even a little, that band sits behind the word CONTENTS. An overflow cue that has to
+       be explained is not one.
 
-       Nothing replaced it. The masks went with the shadows rather than staying on as a
-       softener, because they never softened anything: a background paints behind text, so
-       a --page-bg layer over --page-bg ground is invisible by construction — its whole job
-       was covering the shadow at the two ends, and with no shadow left there is nothing to
-       cover. The top edge does clip whatever entry it lands on, exactly as it did before
-       (fading the ink itself would take mask-image, which is not what was here), and the
-       scroll-spy's `rail.scrollTop = 0` at the document top means the resting state of the
-       rail is its own top, with CONTENTS and entry one whole.
+       The masks alone would do nothing: a background paints behind text, so a --page-bg
+       layer over --page-bg ground is invisible by construction — their whole job in that
+       cue is covering the shadow at the two ends. The top edge clips whatever entry it
+       lands on (fading the ink itself would take mask-image), and the scroll-spy's
+       `rail.scrollTop = 0` at the document top means the resting state of the rail is its
+       own top, with CONTENTS and entry one whole.
 
        What the hidden scrollbar costs is dragging, and only dragging: the list is still
        reachable by wheel, by trackpad, by keyboard (every entry is a link, and tabbing
        through scrolls the port) and by the scroll-spy's own scrollIntoView. */
     scrollbar-width: none;
 
-    /* The +1px is exactly what the retired border-inline-end used to occupy. box-sizing is
-       border-box, so handing it back as padding leaves the text box, and the distance from
-       text to rule, where they were. */
+    /* The +1px is the column the hairline is painted in: the line lands on the rail's own
+       last pixel (see the rule block inside the switch), so this keeps --sp-30 of clear
+       space between the text and the line. */
     padding-inline-end: calc(var(--sp-30) + 1px);
     font-family: var(--font-body);
 
     /* base.css styles the site navigation by element — `nav { display: flex; gap:
        --sp-50; flex-wrap: wrap }` — so any <nav> on the site is a wrapping flex row with
-       a 24px gap unless it says otherwise. Measured before this line existed: the title
-       and the list became two flex items and the gap stacked on top of the title's own
-       margin. Stated rather than inherited, because an element selector that reaches a
-       second nav is the kind of thing that is invisible until something moves 24px. */
+       a 24px gap unless it says otherwise. Without this line the title and the list
+       become two flex items and the gap stacks on top of the title's own margin. Stated
+       rather than inherited, because an element selector that reaches a second nav is
+       the kind of thing that is invisible until something moves 24px. */
     display: block;
   }
 
@@ -1070,8 +1041,7 @@ const ld = {
   .toc-rail__list { margin: 0; padding: 0; list-style: none; }
 
   /* The 4px mark, reused as a position marker instead of a section opener. Laid down
-     transparent on every row so that marking one costs no layout shift - the same idiom
-     base.css uses for the current nav item. */
+     transparent on every row so that marking one costs no layout shift. */
   .toc-rail__item {
     border-inline-start: 4px solid transparent;
     padding-inline-start: var(--sp-30);
@@ -1086,54 +1056,53 @@ const ld = {
      painted, and hover or keyboard focus lifts the clamp for the reader too.
 
      240px is the rail's floor, and this block is the reason for the number. Measured in
-     the built page over the 123 entries the nine posts then had, at 1440x900 (13.88px type), rail
-     inline-size against entries whose text does not fit two lines, against entries that fit
-     on one, and against the number of DOCUMENTS hiding any heading text at all:
+     the built page over all 136 entries on the 14 posts that carry contents, at 1440x900
+     (13.88px type), rail inline-size against entries whose text does not fit two lines,
+     against entries that fit on one, and against the number of DOCUMENTS hiding any
+     heading text at all:
 
          rail       168  192  200  216  240  256  280  312  392
          clamped     25   10    8    5    3    2    2    1    0
-         one-line    46   61   64   75   83   92  100  110  118
+         one-line    58   73   76   88   96  105  113  123  131
          documents    6    6    4    2    1    1    1    1    0
 
-     The deciding row is the last one, not the first. At 168px — what a centred gutter left
-     over at the switch, and the width every figure in this block used to be quoted at —
-     six of the nine documents hide heading text. 200 clears bind9 and 안전하고, 216 clears
-     sysmon and tso, and 240 clears how-to-win: eight of the nine then print every heading
-     in full. Everything past 240 buys exactly one more document, 인지부조화이론, whose two
-     longest headings are 57 and 73 characters against a corpus median of 19 and which does
-     not print them whole at any width measured below 392px — a rail wider than the date
-     rail, its gutter and a third of the measure together. Those two are a writing problem,
-     not a width.
+     The deciding row is the last one, not the first. At 168px — what a centred gutter
+     leaves over at the switch — six of the 14 documents hide heading text. 200 clears
+     bind9 and 안전하고, 216 clears sysmon and tso, and 240 clears how-to-win: 13 of the 14
+     then print every heading in full. Everything past 240 buys exactly one more document,
+     인지부조화이론, whose two longest headings are 57 and 73 characters against a corpus
+     median of 18 and which does not print them whole at any width measured below 392px —
+     a rail wider than the date rail, its gutter and a quarter of the measure together.
+     Those two are a writing problem, not a width.
 
      So 240 is a floor and not a cap, and the geometry above is written to guarantee it by
-     moving the page box rather than by hoping for a wide viewport. Raising the old cap
-     alone would have been exactly backwards: a 240px maximum over a 168px minimum changes
-     nothing in this table for anyone below 1584px, and below 1584 is precisely where the
-     rail was starved. Where the gutter is wide enough to pay for more out of empty space
-     it grows to the 320px cap, and that is worth having but is not what the floor is for —
-     rendered at 1920, where it reaches the cap: 110 of the 123 entries on one line and one
-     entry clamped.
+     moving the page box rather than by hoping for a wide viewport. A 240px cap on what a
+     centred gutter has spare would be exactly backwards: it changes nothing in this table
+     for anyone below 1584px, and below 1584 is precisely where the rail is starved. Where
+     the gutter is wide enough to pay for more out of empty space it grows to the 320px
+     cap, and that is worth having but is not what the floor is for — rendered at 1920,
+     where it reaches the cap: 123 of the 136 entries on one line and one entry clamped.
 
      What else the floor buys, at 1440x900 where the box has 754px of room: the lists that
-     scroll inside themselves go 3 at 168 to 2 at 192 to 1 from 216 up. The one left is
-     how-to-win, 1,014px of list at 240 and still scrolling at every width measured up to
-     392, so the scroll-spy's scrollIntoView is still doing work — do not delete it on the
-     strength of the widening.
+     scroll inside themselves go 3 at 168 to 2 at 192 and 200 to 1 from 216 up. The one
+     left is how-to-win, 1,014px of list at 240 and still scrolling at every width
+     measured up to 392, so the scroll-spy's scrollIntoView is still doing work — do not
+     delete it on the strength of the floor.
 
-     keep-all is kept, and it now holds by a wider margin rather than a narrower one. The
-     narrowest text box the rail offers is still the level-2 entry at the deepest indent,
-     192.6px at the 1440px switch against 120.1px before, and the widest run that keep-all
-     refuses to break is unchanged — it is a property of the type, not of the box: 106.9px
-     for sysmon_view.py, a Latin filename rather than one of the Korean 어절 the rule exists
-     for, and 83.4px for the widest Hangul run, 84.1px at 1920 where the type reaches its
-     14px cap. That is 85px of slack where there were 13. Note what the segments are:
-     keep-all still takes the break opportunity in front of an opening parenthesis, so a
-     nine-syllable run that brackets a gloss halfway through is two segments and not one,
-     and the whitespace-delimited word is the wrong unit to measure. These figures come
-     from wrapping each heading in a 1px box with break-word off and reading the ink extent
-     of every line it produced. Measured over all 123 entries at every column of the table
-     above: 0 entries overflow their box and 0 break inside a Korean word at any of them,
-     so break-word never fires. It stays as the escape valve for anything past that.
+     keep-all is kept, and it holds with room to spare. The narrowest text box the rail
+     offers is the level-2 entry at the deepest indent, 192.1px at the 240px floor against
+     120.1px at 168, and the widest run that keep-all refuses to break is a property of
+     the type, not of the box: 106.9px for sysmon_view.py, a Latin filename rather than one
+     of the Korean 어절 the rule exists for, and 83.3px for the widest Hangul run, 84.1px at
+     1920 where the type reaches its 14px cap. That is 85px of slack, where 168 would leave
+     13. (Set bold as the current entry, the filename is 111.3px.) Note what the segments are: keep-all still takes the break opportunity in front of
+     an opening parenthesis, so a nine-syllable run that brackets a gloss halfway through is
+     two segments and not one, and the whitespace-delimited word is the wrong unit to
+     measure. These figures come from wrapping each heading in a 1px box with break-word
+     off and reading the extent of every line it produced. Measured over all 136 entries
+     at every column of the table above: 0 entries overflow their box and 0 break inside a
+     Korean word at any of them, so break-word never fires. It stays as the escape valve
+     for anything past that.
 
      The clamp stays at two lines. At 240 exactly three entries exceed it and all three are
      in 인지부조화이론; a third line would spend the uniform one-to-two-line rhythm — the thing
@@ -1150,48 +1119,35 @@ const ld = {
     color: var(--page-meta);
     word-break: keep-all;
     overflow-wrap: break-word;
-    /* The other half of the `nav a` inheritance, and both halves are visible in a
-       measurement rather than theoretical. base.css sets the site nav in synthesised
-       small-caps — right for five one-word section names across the top of the page,
-       wrong for 123 sentence-shaped headings — and lays a 4px transparent
-       border-block-end plus 2px of padding under every nav link so that marking the
-       current one costs no layout shift. Measured on this rail before the reset: 6px of
-       dead space under each of 28 entries, 168px of it on how-to-win. The rail draws its
-       own current-item mark on the inline edge, so it wants neither. */
+    /* The other half of the `nav a` inheritance. base.css sets the site nav in
+       synthesised small-caps — right for five one-word section names across the top of
+       the page, wrong for sentence-shaped headings. The border and padding resets
+       override nothing in base.css as it stands, where `nav a` carries no bottom border
+       or padding; they keep one off the rail if nav links are given one, since a 4px
+       border plus 2px of padding would be 6px of dead space under each entry, 168px down
+       how-to-win's 28. The rail draws its own current-item mark on the inline edge, so it
+       wants neither. */
     font-variant-caps: normal;
     border-block-end: 0;
     padding-block-end: 0;
   }
-  /* Hover lives on the <a> and the rule is drawn on the <span> inside it -- see the
-     markup note beside the wrapper. The 1px of padding-block-end is what puts the rule
-     where `text-underline-offset: 0.18em` had it. It has to be padding: written as
-     `--wipe-y: calc(100% + 0.07em)` the rule came out 1px thick instead of 2px, clipped
-     by the border box, which is the kind of thing only a pixel scan catches. The span is
-     inline, so the padding changes no layout at all here -- A/B'd with it removed, even
-     .toc-rail__link's own box is unchanged, because the padding sits inside the clamped
-     box rather than around it -- and it is not eaten by the link's `overflow: hidden`
-     either: measured, the rule draws its full 2px inside the clamp, on every visible line.
-     Checked on the cognitive-dissonance post at 1440, the one article with entries past
-     two lines: rest clamps to 2 lines with the ellipsis intact, hover lifts to 4
-     (41.63 -> 83.25px) and all four lines carry their own rule.
-     The colour step to --page-fg stays and moves inside the pointer gate with the rule:
-     on a touch screen a bare :hover would leave one rail entry darkened until the next
-     tap elsewhere, which on a rail of up to 28 entries reads as a wrong current-item
-     mark. The
-     clamp-lift two rules down is deliberately left ungated -- it is a way to read a
-     clipped heading, not a way to mark one, and gating it would take that away from a
-     touch reader entirely. */
-  /* The ring is drawn inside the link: the rail scrolls, and a ring outside it was cut off
+  /* Hover and focus are the colour step to --crimson, the same gesture as the kicker and
+     the inline list. The hover half sits inside the pointer gate: on a touch screen a
+     bare :hover would leave one rail entry coloured until the next tap elsewhere, which
+     on a rail of up to 28 entries reads as a wrong current-item mark. The clamp-lift at
+     the end of this group (`.toc-rail__link:hover, .toc-rail__link:focus-visible`) is
+     deliberately left ungated -- it is a way to read a clipped heading, not a way to mark
+     one, and gating it would take that away from a touch reader entirely. */
+  /* The ring is drawn inside the link: the rail scrolls, and a ring outside it is cut off
      by the scrollport on the last entry and on any entry at the edge of a scrolled rail. */
   .toc-rail__link:focus-visible { color: var(--crimson); outline-offset: -3px; }
   @media (hover: hover) {
     .toc-rail__link:hover { color: var(--crimson); }
   }
 
-  /* Forced colours drop background-image, so the wipe is not painted there and the colour
-     step is overridden too -- see the note beside .hover-wipe in base.css. The underline
-     this rule replaced is what that mode can still draw, so it comes back here, with the
-     offset it carried before. */
+  /* Forced colours override `color` at rest and on hover alike, so the colour step above
+     paints nothing there. An underline is what that mode can still draw, so it is the
+     hover and focus mark here, at the 0.18em offset the prose uses. */
   @media (forced-colors: active) {
     .toc-rail__link:focus-visible { text-decoration: underline; text-underline-offset: 0.18em; }
   }
@@ -1204,25 +1160,23 @@ const ld = {
   .toc-rail__link:focus-visible { -webkit-line-clamp: none; }
 
   /* ── which presentation ──────────────────────────────────────────────────
-     1440px, unchanged, but the arithmetic under it is not. It used to be the width at
-     which a centred page box left room for the narrowest rail the design allowed:
-
-         vw >= --w-page + 2 x (168 + --toc-gap + --toc-edge)  =  1440px
-
-     The rail no longer takes what a centred gutter has left over, so that is no longer
-     the question. What the switch has to guarantee now is that pushing the page box out
-     to --page-left still leaves the measure a gutter on its other side:
+     1440px. What the switch has to guarantee is that pushing the page box out to
+     --page-left still leaves the measure a gutter on its other side:
 
          vw >= --toc-edge + 240 + --toc-gap + --w-page + right gutter
             =     16      + 240 +    24     +   1024   +      96      =  1400px
 
-     1440 clears that with 40px to spare and leaves 136px on the right, so the literal
-     stays exactly where it was and every width at which either presentation was checked
-     is still the width it was checked at. 96px is the article's own date rail plus its
-     gutter: the measure keeps the same clearance to its right as it has to its left
-     inside the page box. The width below which the document would actually scroll
-     sideways is lower still - --toc-edge + 240 + --toc-gap + --w-page + --root-pad, about
-     1327px.
+     1440 clears that with 40px to spare and leaves 136px on the right. It is also the
+     width at which a centred page box first leaves room for a 168px rail,
+
+         vw >= --w-page + 2 x (168 + --toc-gap + --toc-edge)  =  1440px
+
+     and it is kept there rather than lowered to 1400 so that every width either
+     presentation was checked at stays on the same side of the switch. 96px is the
+     article's own date rail plus its gutter: the measure keeps the same clearance to its
+     right as it has to its left inside the page box. The width below which the document
+     would actually scroll sideways is lower still - --toc-edge + 240 + --toc-gap +
+     --w-page + --root-pad, about 1327px.
 
      Measured rail width: 240.0px at 1440, held to 1584, 256.0 at 1616, 320.0 from 1744 up
      where it holds at the cap. Below the switch the rail parks off-screen and the inline
@@ -1231,7 +1185,7 @@ const ld = {
      widths from 320 to 2560, both sides of the switch included, with and without a classic
      scrollbar, and on a post with no contents at all, where neither appears.
 
-     If --w-content moves again, this literal moves with it - a media query cannot read a
+     If --w-content moves, this literal moves with it - a media query cannot read a
      custom property, which is why the rail's own geometry above is written so that a
      stale literal here can only park the rail early, never push it onto the text or the
      page box off the screen. */
@@ -1247,19 +1201,18 @@ const ld = {
        `--page-left - --root-pad` is the margin `margin-inline: auto` was already
        computing. It bites only in the 1440-1584 band.
 
-       The header used to travel with it. A second rule here,
-       `body:has(.post-shell) > header`, restated base.css's header padding against
-       --page-left so that the wordmark stayed on the page box's left edge through the
-       shift. It is deleted, and the reason is what the shift looks like from the reading
-       chair rather than from the arithmetic. base.css's padding is symmetric by
-       construction; --page-left is not, because it is a max() that grows on the LEFT
-       only — so inside the band the override made the bar 280px/181px and slid the whole
-       thing ~50px right, on article pages and nowhere else. Every other route kept a
-       still bar, so the one place a reader spends real time was the one place the
-       furniture moved under them. A bar that is in the same place on every page is worth
-       more than a left edge shared with body text across a 144px band, and that is the
-       trade this file now takes. base.css states the fixed-bar contract; nothing on an
-       article page may restate the header's padding again.
+       A second rule here could restate base.css's header padding against --page-left
+       and keep the wordmark on the page box's left edge through the shift. It does not
+       exist, and the reason is what the shift looks like from the reading chair rather
+       than from the arithmetic. base.css's padding is symmetric by construction;
+       --page-left is not, because it is a max() that grows on the LEFT only — so inside
+       the band such an override makes the bar asymmetric and slides the whole thing
+       right, on article pages and nowhere else. Every other route keeps a still bar, so
+       the one place a reader spends real time would be the one place the furniture moves
+       under them. A bar that is in the same place on every page is worth more than a left
+       edge shared with body text across a 144px band, and that is the trade this file
+       takes. base.css states the fixed-bar contract; nothing on an article page may
+       restate the header's padding.
 
        What it costs, stated rather than discovered: inside the band an article's page box
        starts up to 79.5px right of the wordmark above it — measured 79.5 at a 1440px
@@ -1268,24 +1221,23 @@ const ld = {
        against the centred position, so it is zero the moment a centred gutter can seat
        the rail, and never negative.
 
-       Keyed on the ARTICLE, not on the rail, and that is a reversal worth stating. It
-       used to read `main:has(.toc-rail)`, so the gutter was reserved only where a rail
-       was actually painted, and the price was a step: moving between a post with
-       contents and one without moved the left edge by up to 72px inside the band (79.5
-       with a classic scrollbar). Under the premise this page is now built on — every post
-       gets headings — the two forms converge, because every article ends up with a rail;
-       keying on .post-shell is arriving at that steady state early instead of shipping a
-       step that exists only for as long as 16 documents are missing their headings.
+       Keyed on the ARTICLE, not on the rail. Keyed on `main:has(.toc-rail)`, the gutter
+       would be reserved only where a rail is actually painted, and the price would be a
+       step: moving between a post with contents and one without would move the left edge
+       by up to 72px inside the band (79.5 with a classic scrollbar). Under the premise
+       this page is built on — every post gets headings — the two forms converge, because
+       every article ends up with a rail; keying on .post-shell arrives at that steady
+       state early instead of shipping a step that exists only for as long as 16 documents
+       are missing their headings.
 
        What it costs meanwhile, stated rather than discovered: those 16 get an empty 280px
        left gutter between 1440 and 1584, and their text sits up to 72px right of the
-       Writing index entry it was clicked from. That divergence is not new — it is exactly
-       what the nine rail posts already had, and the same arithmetic bounds it (--page-left
-       is a max() against the centred position, so it is 0 from 1584 up and 0 below 1440).
-       What IS new is that it is uniform across all 30 articles instead of stepping between
-       them. The rule below is still keyed on the rail: a hairline with nothing beside it
-       is a stray line, so the gutter is reserved on every article and marked on none that
-       has no list to mark. */
+       Writing index entry it was clicked from. It is the same divergence every post with
+       a rail has, bounded by the same arithmetic (--page-left is a max() against the
+       centred position, so it is 0 from 1584 up and 0 below 1440), and it is uniform
+       across all 30 articles instead of stepping between them. The rule below is keyed on
+       the rail: a hairline with nothing beside it is a stray line, so the gutter is
+       reserved on every article and marked on none that has no list to mark. */
     main:has(.post-shell) {
       /* Containing block for the rule below, and nothing else reads it. `position:
          relative` with `z-index: auto` establishes no stacking context, so the rail's own
@@ -1299,16 +1251,16 @@ const ld = {
     }
 
     /* ── the rule ──────────────────────────────────────────────────────────
-       The hairline down the rail's inline-end edge. It is now a box in the DOCUMENT
-       rather than a box in the viewport, and that is the fix for the cut at its top.
+       The hairline down the rail's inline-end edge. It is a box in the DOCUMENT rather
+       than a box in the viewport, and that is what keeps its top joined to the header.
 
-       What was wrong. It was `position: fixed` with `inset-block: var(--toc-y) 0`, so it
-       began --sp-120 down the VIEWPORT — 103px at 1440, 112 at 1700, 120 from 1920 up —
-       while the header is 59.4px tall. Measured on how-to-win at 1700x860 before this
-       change: header rule at y = 59, line top at y = 112, 52px of empty gutter between
-       them. Scrolling did not close it either: the line is viewport-fixed, so the band
-       came back at every scroll position, by then with nothing above it at all because
-       the header is `position: static` and has scrolled away.
+       A fixed line starts too low. `position: fixed` with `inset-block: var(--toc-y) 0`
+       begins --sp-120 down the VIEWPORT — 103px at 1440, 112 at 1700, 120 from 1920 up —
+       while the header is about 60px tall: on how-to-win at 1700x860 that puts the header
+       rule at y = 59 and the line's top at y = 112, 52px of empty gutter between them.
+       Scrolling does not close it either: a viewport-fixed line brings the band back at
+       every scroll position, by then with nothing above it at all because the header is
+       `position: static` and has scrolled away.
 
        Why no fixed box can be right here. It has one top, and the top this line needs is
        in two places: at the header's bottom edge while the header is on screen, and at
@@ -1320,28 +1272,27 @@ const ld = {
        point. <main> is in normal flow directly under a full-bleed, `position: static`
        header and opens with padding rather than margin, so no margin collapses through
        it and main's padding box begins EXACTLY at the header's bottom border. The number
-       that edge takes is 59.43px at 1440 and 59.60 at 1700 — 16 + a 26.43/26.60 shared
+       that edge takes is 59.70px at 1440 and 59.88 at 1700 — 16 + a 26.70/26.88 shared
        line box + 16 + a 1px border — but it is never written down here, so --sp-40,
-       --fs-body or --lh-medium can all move and the line follows the header with no edit
+       --fs-nav or --lh-medium can all move and the line follows the header with no edit
        in this file. `inset-block-end: 0` is the same trade at the other end: main's
-       padding box ends with its --sp-120 of bottom padding, which is the document's last
-       pixel, so at the foot of the document the line ends on the viewport floor exactly.
+       padding box ends with its --sp-120 of bottom padding, directly above the site
+       footer, so at the foot of the document the line stops where the footer starts.
 
-       What it costs, stated because the retired note argued the opposite: the line is now
-       3,270px long on journalctl instead of one screen tall, so it travels while the
-       fixed rail stands still. A 1px vertical line that spans the whole viewport at every
-       scroll position is indistinguishable from one pinned to it — there is no feature on
-       it that can be seen to move — and in exchange the top is right at scrollY 0 and at
-       every scrollY after it. Measured on journalctl at scrollY 0 / 400 / 1200 / 3503 and
-       on how-to-win at 0 / 800: painted from the header's edge, or from y = 0 once past
-       it, to the last painted row, at all six.
+       What it costs: the line is as long as <main> — nearly 4,000px on journalctl at 1700
+       — instead of one screen tall, so it travels while the fixed rail stands still. A
+       1px vertical line that spans the whole viewport at every scroll position is
+       indistinguishable from one pinned to it — there is no feature on it that can be
+       seen to move — and in exchange the top is right at scrollY 0 and at every scrollY
+       after it. Measured on journalctl and how-to-win at 1700x860, at scrollY 0 / 400 /
+       800 / 1200 and at the foot of each: painted from the header's edge, or from y = 0
+       once past it, down to the viewport floor, or to the footer's top at the foot.
 
-       It can no longer be a pseudo-element of .toc-rail, and that is what the move buys.
-       .toc-rail is `position: fixed`, which makes it the containing block for any
-       absolutely positioned descendant, so an abs child of it is measured from the list
-       box and clipped back to the list's own height — the original cut, the one the fixed
-       line was introduced to escape. Hung on <main> the two are unrelated boxes, and the
-       rail is free to stay fixed.
+       It cannot be a pseudo-element of .toc-rail. .toc-rail is `position: fixed`, which
+       makes it the containing block for any absolutely positioned descendant, so an abs
+       child of it would be measured from the list box and clipped back to the list's own
+       height. Hung on <main> the two are unrelated boxes, and the rail is free to stay
+       fixed.
 
        Where it sits across is derived, not restated. The rail's inline-end edge is
        --toc-gap inside the page box's left edge by construction, and main's padding box
@@ -1350,20 +1301,19 @@ const ld = {
        main's inline start, less its own 1px. Measured: -1.53px at 1440 and -1.00px from
        1488 up, where --root-pad reaches its 24px cap and cancels --toc-gap exactly — so
        across almost the whole band the line is simply the pixel before <main>. Both terms
-       are :root tokens, --page-left is still stated once, and the line tracks the page box
-       because <main> does. The -1px is what keeps this the SAME pixel
-       the retired version painted — the rail's padding-inline-end still hands back the
-       1px a border-inline-end would have occupied, so the line has to land on the rail's
-       own inline-end edge, not in the gap past it. Measured at 1700x860: painted column
-       x = 306 before the move and x = 306 after, against a rail edge at 306.5.
+       are :root tokens, --page-left is stated once, and the line tracks the page box
+       because <main> does. The -1px puts the line on the rail's own last pixel rather
+       than in the gap past it; the rail's padding-inline-end reserves that pixel (see
+       .toc-rail). Measured at 1700x860: painted column x = 306, against a rail edge at
+       306.5.
 
-       Declared inside the switch and nowhere else. It has no parked state now — a line
-       whose x is measured from <main> would stand in the left margin at every width below
-       1440 — so it is simply not generated there, and this media query is again the one
-       place where any part of either presentation is turned on or off. The one thing that
-       costs is the slide: crossing 1440 the rail still slides in from the left and the
-       line now appears at once beside it. That is a resize-only artefact, against an
-       off-screen box on every one of these pages at every width. */
+       Declared inside the switch and nowhere else. It has no parked state — a line whose
+       x is measured from <main> would stand in the left margin at every width below
+       1440 — so it is simply not generated there, and this media query is the one place
+       where any part of either presentation is turned on or off. The one thing that
+       costs is the slide: crossing 1440 the rail slides in from the left and the line
+       appears at once beside it. That is a resize-only artefact, against an off-screen
+       box on every one of these pages at every width. */
     main:has(.toc-rail)::before {
       content: "";
       position: absolute;
@@ -1381,18 +1331,19 @@ const ld = {
     .toc { display: none; }
   }
 
-  /* The one thing the move from a border to a painted box cost, handed back.
+  /* The line is a painted box, and this is the one mode that does not keep it.
 
      Forced colours replace `background-color` with Canvas and `border-color` with a system
-     colour, so the retired border-inline-end survived Windows High Contrast Mode and a
-     background does not. Measured in this page with forced-colors emulated, two 1px strips
-     of the same var(--page-hairline) laid side by side over the gutter: as a border it
-     paints rgb(0, 0, 0), as a background rgb(255, 255, 255) — the Canvas it sits on, which
-     is to say nothing at all.
+     colour, so a border survives Windows High Contrast Mode and a background does not.
+     Measured in this page with forced-colors emulated, two 1px strips of one colour laid
+     side by side over the gutter: as a border it paints
+     rgb(0, 0, 0), as a background rgb(255, 255, 255) — the Canvas it sits on, which is to
+     say nothing at all.
 
-     Drawn as a border again here and only here, with no colour of its own so the UA forces
-     one. box-sizing is border-box, so the 1px border is the same 1px box in the same place;
-     nothing else about the geometry moves. Outside the switch above rather than inside it,
+     So the line is drawn as a border here and only here, with no colour of its own so the
+     UA forces one. box-sizing is border-box, so the 1px border is the same 1px box in the
+     same place; nothing else about the geometry moves. Outside the switch above rather
+     than inside it,
      because a nested @media is not worth relying on through the build; the selector only
      matches an element the switch has already generated. */
   @media (forced-colors: active) {
@@ -1406,7 +1357,7 @@ const ld = {
        legible at normal contrast; a High Contrast reader should not have to take it. So
        the scrollbar comes back here, in the one mode where a second vertical bar is the
        lesser problem — it is drawn in system colours against a system Canvas, so it does
-       not read as a tan twin of the rule the way --sand-dark did. */
+       not read as a tan twin of the rule the way a --sand-dark thumb would. */
     .toc-rail { scrollbar-width: thin; }
     .toc-rail::-webkit-scrollbar { inline-size: auto; block-size: auto; }
 
@@ -1422,24 +1373,24 @@ const ld = {
      and only this one may win. */
   @media print {
     .toc-rail { display: none; }
-    /* `display: none` on the rail no longer takes the rule with it: the rule is a
-       pseudo-element of <main> now, and <main> prints. `content: none` generates no box
-       at all, which is what the pseudo-element on the rail used to get for free. */
+    /* `display: none` on the rail does not take the rule with it: the rule is a
+       pseudo-element of <main>, and <main> prints. `content: none` generates no box at
+       all. */
     main:has(.toc-rail)::before { content: none; }
     .toc { display: block; }
 
     /* `display: block` shows the <details>, not the list inside it. A closed <details>
        hides its own content, and the print pipeline does not open it: measured with
-       Page.printToPDF on journalctl, 405,956 bytes with the summary as the reader left it
-       against 424,429 for the same page with the list opened by hand. So what paper was
-       getting from the line above was the word CONTENTS between two rules and nothing
-       under it — the one presentation left on paper, printing none of itself.
+       Page.printToPDF on journalctl without the rule below, 405,092 bytes with the summary
+       closed against 423,023 for the same page with the list opened by hand. So what
+       paper gets from the line above alone is the word CONTENTS between two rules and
+       nothing under it — the one presentation left on paper, printing none of itself.
 
        ::details-content is the UA's own box for that hidden content, so this prints the
        list without touching the open state on screen: no `open` attribute to set and
        restore, no beforeprint handler to depend on, and nothing at all outside @media
-       print. An engine without the pseudo-element ignores the line and prints exactly
-       what it prints today. The marker goes with it — a disclosure triangle in front of a
+       print. An engine without the pseudo-element ignores the line and prints the
+       summary alone. The marker goes with it — a disclosure triangle in front of a
        list that is already there is an instruction to click, on the one medium where
        nothing can be. */
     .toc::details-content { content-visibility: visible; }
@@ -1464,13 +1415,13 @@ const ld = {
        :where(.wp-block-heading + p)       → spacing-24 */
   .prose > * { margin-block-start: var(--sp-48); }
   .prose > :first-child { margin-block-start: 0; }
-  /* Paragraph to paragraph is the reference's .7em (--sp-para, 11.2px at this 16px body)
-     and no longer the Gazette's 24px. The two selectors used to share one declaration and
-     are split here because they are two different joins: a paragraph continuing a
-     paragraph is the tightest join in the document, and a heading handing off to its own
-     first paragraph is a section opening, which keeps --sp-24. Nothing else moves — the
-     48px block rhythm, the 64px above an h2/h3 and the list and figure gaps are all
-     written off their own tokens and none of them reads --sp-para. */
+  /* Paragraph to paragraph is the reference's .7em (--sp-para, 11.2px at this 16px body),
+     not the Gazette's 24px. The two selectors take separate declarations because they
+     are two different joins: a paragraph continuing a paragraph is the tightest join in
+     the document, and a heading handing off to its own first paragraph is a section
+     opening, which keeps --sp-24. The 48px block rhythm, the 64px above an h2/h3 and the
+     list and figure gaps are all written off their own tokens and none of them reads
+     --sp-para. */
   .prose > p + p { margin-block-start: var(--sp-para); }
   .prose > :is(h2, h3, h4, h5, h6) + p { margin-block-start: var(--sp-24); }
   /* A heading opens a section, so it gets more air than an ordinary block. */
@@ -1480,18 +1431,17 @@ const ld = {
   .prose p { text-wrap: pretty; }
 
   /* ── staccato ────────────────────────────────────────────────────────────
-     Measured on the real corpus at the 728px/20px this rule was cut against: 305 of 715
-     paragraphs (42%) set as a single line, and 11 documents are over half —
-     dont-assume and journalctl are at 100%, i-have-to has 50 one-liners out of 69.
-     A 928px column at 19px only pushes that up — an independent recount over the same
-     corpus puts the share near 60% — so the widening strengthens this rule rather than
-     weakening it, and proseShape()'s 60-character threshold is unaffected either way:
-     it reads the source, not the rendered line.
-     A one-line paragraph is 32px of ink over a 24px gap; fifty in a row is not prose,
-     it is verse. Those documents take the book setting instead: the indent marks the
-     paragraph and the gap goes to zero. Indent OR gap, never both — two signals for
-     one boundary. proseShape() picks the 11; nothing is hand-tagged. 1em is one Hangul
-     square (0.889em advance), which is the conventional Korean indent. */
+     Measured on the real corpus at this 928px column and 16px body: 532 of 789
+     paragraphs (67%) set as a single line, and 19 documents are over half —
+     dont-assume and journalctl are at 100%, i-have-to has 66 one-liners out of 69.
+     proseShape()'s 60-character threshold does not move with the column or the type
+     size: it reads the source, not the rendered line.
+     A one-line Korean paragraph is a 28px line over an 11px gap; fifty in a row is not
+     prose, it is verse. Those documents take the book setting instead: the indent marks
+     the paragraph and the gap goes to zero. Indent OR gap, never both — two signals for
+     one boundary. proseShape() picks them, 10 today; nothing is hand-tagged. 1em is the
+     conventional Korean indent of one full square, a little wider than a KoBody
+     syllable's 0.815em advance. */
   .post[data-rhythm='staccato'] .prose > p + p {
     margin-block-start: 0;
     text-indent: 1em;
@@ -1501,26 +1451,29 @@ const ld = {
   .post[data-rhythm='staccato'] .prose > :not(p) + p { text-indent: 0; }
 
   /* ── links ───────────────────────────────────────────────────────────────
-     Weight and underline only, no colour (base.css). Korean strong runs to 177 uses
-     across the corpus and is also 700, so the underline is what carries the link. */
+     Colour, not weight or underline (base.css): a prose link is crimson at the weight of
+     the text around it and draws no rule. This offset is for the one prose link that
+     does draw one, a footnote marker or backref on hover (see footnotes below); <ins> and
+     <abbr> repeat it, so every underline in the prose sits at one depth. */
   .prose a { text-underline-offset: 0.18em; }
 
   /* ── emphasis ────────────────────────────────────────────────────────────
      Pretendard ships no italic, so a browser would synthesise an oblique by shearing
-     Hangul — which skews the vertical stems the syllable block is built on. The ten
-     Korean <em> runs left after the figure captions are lifted out are all already
-     inside quotation marks, so the slant carried no information anyway. 500 is a real
-     instance on the variable axis (45–930) and does not collide with strong at 700. */
+     Hangul — which skews the vertical stems the syllable block is built on. All 14 <em>
+     runs in the corpus are on Korean pages, and eight of them already sit inside
+     quotation marks, where the slant says nothing the marks do not. 500 is a real
+     instance on the shipped face's 400–700 weight axis and does not collide with strong
+     at 700. */
   .prose em { font-style: italic; }
   .post[lang='ko'] .prose em { font-style: normal; font-weight: 500; }
 
   /* ── inline semantics ────────────────────────────────────────────────────────
      Six elements Markdown has no syntax for, which an author therefore writes as raw HTML.
-     They pass through intact (rawHtml is off, so they ship as opaque raw nodes), and until
-     now every one of them rendered at its UA default -- which on this ground meant a
-     browser-yellow <mark> and a <kbd> in the engine's own monospace at full size. Zero in
-     the corpus today; all six are one keystroke away in any technical post, and the whole
-     cost of covering them is this block.
+     satteri-guard lets them through (rawHtml is off, so they ship as opaque raw nodes),
+     and without this block every one of them renders at its UA default -- which on this
+     ground means a browser-yellow <mark> and a <kbd> in the engine's own monospace at full
+     size. Zero in the corpus today; all six are one keystroke away in any technical post,
+     and the whole cost of covering them is this block.
 
      <del> is deliberately absent: strikethrough is the one of these that Markdown DOES have
      syntax for (~~x~~), the UA line-through is correct, and a colour change would say
@@ -1538,11 +1491,12 @@ const ld = {
   }
   /* The palette has no yellow, and --ppc-wash -- the token the ladder nominally reserves
      for emphasis grounds -- is capped at 1.25:1 against the page by design. Rendered, that
-     is not a highlight: #f7ebeb on #fffbf4 measured 1.06:1, a band the eye does not find.
+     is not a highlight: #f7ebeb on #fffbf4 is 1.13:1, a band the eye does not find.
      --sand is the one ground on this page that is provably legible at a glance, because
      every code plate and every inline code span already sits on it, and black over it is
-     17.6:1. The padding is what turns a fill that hugs the glyphs into a marked run; the
-     1px border and the mono face are what keep it from reading as code. */
+     18.2:1. The padding is what turns a fill that hugs the glyphs into a marked run;
+     leaving out the code span's 1px border and mono face is what keeps it from reading
+     as code. */
   .prose mark { background: var(--sand); color: inherit; padding: 0.1em 0.2em; }
   /* A dotted underline is the one abbreviation convention that survives without a tooltip,
      and `help` is the cursor that says a title is there to be read. */
@@ -1562,15 +1516,16 @@ const ld = {
   }
   .prose sup { inset-block-end: 0.45em; }
   .prose sub { inset-block-start: 0.25em; }
-  /* <ins> is underlined by the UA at the same place a link is. The offset matches the link
-     rule so the two at least sit on one line, and the weight stays at the body's. */
+  /* <ins> is underlined by the UA. The offset matches the link rule's, so it sits on the
+     same line as every other underline in the prose, and the weight stays at the body's. */
   .prose ins { text-decoration-thickness: from-font; text-underline-offset: 0.18em; }
   .prose small { font-size: var(--fs-medium); color: var(--page-meta); }
 
   /* ── quotes ──────────────────────────────────────────────────────────────
      .wp-block-quote::before is an 8px bar with a 1rem gap, as measured. Its
-     spacing-120 block margins are for pull quotes; the two quotes in this corpus are
-     citations, so they keep the ordinary 48px rhythm and the body size. */
+     spacing-120 block margins are for pull quotes; the quotes in this corpus are
+     citations and set-off notes inside running text, so they keep the ordinary 48px
+     rhythm and the body size. */
   .prose blockquote {
     display: grid;
     grid-template-columns: calc(8px + 1rem) minmax(0, 1fr);
@@ -1603,7 +1558,7 @@ const ld = {
 
   /* CommonMark's loose list, restored. A blank line between items wraps each item's content
      in <p>, which is the author's own gesture for "these are paragraphs, not entries"; with
-     `p { margin: 0 }` in base.css a loose list and a tight one were rendering pixel for
+     `p { margin: 0 }` in base.css a loose list and a tight one would render pixel for
      pixel the same. `:has(> p)` reads the distinction straight off the markup, and it is
      uniform per list -- CommonMark makes a list loose or tight as a whole, so either every
      item carries a <p> or none does and a mixed list cannot occur. */
@@ -1617,11 +1572,11 @@ const ld = {
      next, which is what earns it a block.
 
      The box hangs in the marker gutter, so a task item's text starts on exactly the column
-     a plain item's text does, and it does that with inline margins rather than a grid. The
-     grid version worked and then did not: GFM emits the checkbox as a direct child of the
+     a plain item's text does, and it does that with inline margins rather than a grid. A
+     grid holds only for a tight list: GFM emits the checkbox as a direct child of the
      <li> only in a TIGHT list, and moves it inside the item's first <p> the moment the list
-     is loose. Rendered, that left the loose rows with an unstyled grey system checkbox (the
-     child selector missed it), the <p> pinned to the text column with an empty marker
+     is loose. Rendered as a grid, the loose rows get an unstyled grey system checkbox (the
+     child selector misses it), the <p> pinned to the text column with an empty marker
      column beside it, and the item's second paragraph and nested list at the wrong indent.
 
      The arithmetic below has no opinion about which shape it is in, because it is all on
@@ -1644,8 +1599,8 @@ const ld = {
     block-size: var(--box);
     /* The empty box IS this row's marker, so it is drawn in the colour the discs beside it
        are drawn in (`li::marker { color: var(--page-meta) }` above). --sand-dark, the
-       border the code plate and the inline code span use, measured 1.25:1 against the page
-       and left the unchecked rows looking unmarked next to the filled ones -- which reads
+       border the inline code span and the copy control use, is 1.37:1 against the page
+       and leaves the unchecked rows looking unmarked next to the filled ones -- which reads
        as "these items have no bullet", not as "these items are not done". */
     border: 1px solid var(--page-meta);
     background: var(--page-bg);
@@ -1658,28 +1613,28 @@ const ld = {
   }
   /* Filled, not ticked. A drawn checkmark needs either a glyph outside the Latin subset or
      a pseudo-element on a form control, and the second is not reliable across engines; a
-     filled crimson square against an empty sand one is unambiguous, costs one declaration
+     filled crimson square against an empty one is unambiguous, costs one declaration
      and cannot fail to paint. The state is in the DOM as well (`checked`), which is what
      assistive tech reads either way. */
   .prose .task-list-item input[type='checkbox']:checked {
     background: var(--ppc-ui);
     border-color: var(--ppc-ui);
   }
-  /* Its own block rather than the rail's, 370 lines up: these two selectors have the same
-     specificity as the ones above, so an override has to come after them in source order.
-     Measured before it was moved -- appearance stayed `none` in forced colours and the
-     checked square went on painting a background the mode had already discarded.
-     A background fill is exactly what forced colours drop, so "done" would have become
-     indistinguishable from "not done". Handing the box back to the engine is better than
-     any fallback of ours: a High Contrast reader gets a real system checkbox, in system
-     colours, carrying the state that is in the DOM either way. The grid still holds it in
-     the marker gutter, so nothing about the row moves. */
+  /* Its own block rather than the forced-colours block that follows the Contents switch:
+     these two selectors have the same specificity as the task-list rules above, so an
+     override has to come after them in source order. Placed before them, appearance stays
+     `none` in forced colours and the checked square goes on painting a background the
+     mode has already discarded. A background fill is exactly what forced colours drop, so
+     "done" would become indistinguishable from "not done". Handing the box back to the
+     engine is better than any fallback of ours: a High Contrast reader gets a real system
+     checkbox, in system colours, carrying the state that is in the DOM either way. */
   @media (forced-colors: active) {
     .prose .task-list-item input[type='checkbox'] {
       appearance: auto;
       transform: none;
-      /* The engine picks the box's size back up, so the gutter arithmetic is handed back
-         to it as well rather than being computed against a width we no longer set. */
+      /* No hang here. The box keeps its --box size (inline-size and block-size still
+         apply to the native control), sits at the start of the row with 0.25em after it,
+         and the item's text starts that much further in than a plain item's. */
       margin-inline: 0 0.25em;
     }
   }
@@ -1687,23 +1642,19 @@ const ld = {
   /* ── figures ─────────────────────────────────────────────────────────────
      Built by src/lib/satteri-figure.mjs: 26 images, 24 figures, 11 captions.
 
-     Width is the body measure, not an extension. 18 of the 26 images are narrower than
-     928px (356–896px) and five are terminal strips as short as 12–38px tall; stretching
-     any of them to the column would upscale a screenshot into mush. So no `width` is
-     declared at all — satteri-prose.mjs stamps the intrinsic width/height, the browser
-     takes that as the used width, and only the 8 oversize ones (1115–1965px) are pulled
-     back by max-width. Widening the measure moved five images out of that group and did
-     not upscale anything: an image without a `width` never grows past its own pixels.
+     Width is the body measure, not an extension. 21 of the 26 images are narrower than
+     928px (356–896px) and six are strips as short as 12–38px tall; stretching any of
+     them to the column would upscale a screenshot into mush. So no `width` is declared at
+     all — satteri-prose.mjs stamps the intrinsic width/height, the browser takes that as
+     the used width, and only the 5 oversize ones (1115–1965px) are pulled back by
+     max-width. An image without a `width` never grows past its own pixels.
 
-     No plate, and no frame of any kind. .fig__plate used to paint --sand behind the
-     images, ring them in a 1px --sand-dark border and inset them by 16px of padding —
-     a mat and a frame, argued for as something for a 779x12 terminal strip to sit on.
-     It is removed at the author's instruction: a photograph on this site is the thing
-     itself, not a picture of a picture hung on the page, and the border was the only
-     rule in the prose that enclosed content rather than separating it. The class stays
-     because it is satteri-figure's DOM contract and because the flex row below is what
-     puts a three-image set on one line; it is now layout and nothing else. A narrow
-     strip is left to sit on the page ground, which is what every other block here does. */
+     No plate, and no frame of any kind: no --sand mat behind the images, no border
+     around them, no padding to inset them. A photograph on this site is the thing itself,
+     not a picture of a picture hung on the page. .fig__plate stays because it is
+     satteri-figure's DOM contract and because the flex row below is what puts a
+     three-image set on one line; it is layout and nothing else. A narrow strip, down to
+     the 779x12 one, sits on the page ground, which is what every other block here does. */
   /* Every image, not only the ones satteri-figure lifted into a <figure>. It converts a
      paragraph holding nothing BUT images, so an image with text beside it, a linked image
      [![](a)](b), an image in a list or a table cell, and a raw-HTML <img> all stay bare --
@@ -1723,7 +1674,7 @@ const ld = {
     align-items: flex-start;
   }
   .prose .fig img { display: block; }
-  /* 인지부조화이론.md puts three 1600x2134 scans on three adjacent lines, which
+  /* 인지부조화이론.md puts three 600x800 scans on three adjacent lines, which
      CommonMark folds into a single paragraph. They are a set, so they share a row. */
   .prose .fig[data-count='3'] img { flex: 1 1 0; min-width: 0; }
   .prose .fig figcaption {
@@ -1786,8 +1737,8 @@ const ld = {
   }
 
   /* ── thematic break ──────────────────────────────────────────────────────
-     Three in the corpus. It reuses the header's mark rather than introducing a second
-     kind of line onto a page whose only graphic element is that mark. */
+     It reuses the header's mark rather than introducing a second kind of line onto a
+     page whose only graphic element is that mark. */
   .prose hr {
     width: 3rem;
     height: 0;
@@ -1803,21 +1754,21 @@ const ld = {
          <h2 class="sr-only" id="footnote-label">Footnotes</h2>
          <ol><li id="user-content-fn-1"><p>… <a class="data-footnote-backref">↩</a></p></li>
 
-     Zero in the corpus, and the most plausible missing construct in it: 8 of the 30 posts
-     are translations or commentaries that cite a source, and every one of them does it with
-     a parenthesis today. Unstyled, the apparatus renders at body size with nothing between
-     it and the last paragraph, which reads as one more section rather than as notes.
+     Zero in the corpus, and the most plausible missing construct in it: the posts that
+     translate or comment on a source cite it with a parenthesis today. Unstyled, the
+     apparatus renders at body size with nothing between it and the last paragraph, which
+     reads as one more section rather than as notes.
 
      The separator is the 4px x 3rem mark, not a full-width hairline -- the same mark <hr>
      and the code plate's language label already use, and the only graphic element this page
      has. A hairline would be a second kind of line for the same job.
 
-     The `↩` is U+21A9 and the Latin subset stops at U+2248, so that one glyph comes from a
-     system fallback face. Left as it is on purpose: it is a single mark at the end of a
-     note, the alternatives are an ASCII digraph in the middle of typeset prose or a rebuild
-     of both Latin faces to add one codepoint, and the Sätteri option that would change it
-     (`gfm: { footnotes: { backContent } }`) is a worse trade than the fallback. Whoever
-     owns scripts/subset-fonts.py can close it by adding U+21A9 to LATIN. */
+     The `↩` is U+21A9, and Lora has no glyph for it (the master in fonts-src/ carries no
+     arrows at all), so no subset can supply it and that one glyph comes from a system
+     fallback face. Left as it is on purpose: it is a single mark at the end of a note, the
+     alternative is an ASCII digraph in the middle of typeset prose, and the Sätteri
+     option that would change it (`gfm: { footnotes: { backContent } }`) is a worse trade
+     than the fallback. */
   .prose .footnotes {
     margin-block-start: var(--sp-80);
     font-size: var(--fs-medium);
@@ -1838,7 +1789,7 @@ const ld = {
   .prose .footnotes li { scroll-margin-block-start: var(--sp-40); }
   /* Following a marker lands the reader in the middle of a list of near-identical
      paragraphs; this is the one thing that says which one was asked for. --ppc-wash is the
-     same emphasis ground <mark> takes, and the inline padding puts a margin around the text
+     section's emphasis ground, and the inline padding puts a margin around the text
      without moving it. */
   .prose .footnotes li:target {
     background: var(--ppc-wash);
@@ -1859,14 +1810,13 @@ const ld = {
     font-weight: 400;
     color: var(--ppc-text);
   }
-  /* The one hover underline on the site that does NOT take the header's wipe, and the
-     reason is that these two are not navigation labels. They are a bracketed numeral and
-     a return arrow, roughly 8px of ink each, set inside running prose where every other
-     link is underlined at rest. A 0.3s centre-out wipe across 8px is a flicker rather
-     than a gesture, and drawing it in --crimson would put an accent bar mid-paragraph
-     that reads as emphasis on the word beside it. They are also a deliberate pair -- same
-     colour, same weight, same rule -- so animating the backref alone would split them.
-     Nothing renders here today either way: there are no footnotes in content/writing/. */
+  /* The one link in the prose that draws an underline, and only on hover. These two are
+     a bracketed numeral and a return arrow, roughly 8px of ink each, set inside running
+     prose; on hover they take the colour step every prose link takes (base.css) and this
+     plain underline with it, not an animated rule -- a 0.3s centre-out wipe across 8px is
+     a flicker rather than a gesture. They are a deliberate pair -- same colour, same
+     weight, same rule -- so neither changes without the other. Nothing renders here today
+     either way: there are no footnotes in content/writing/. */
   .prose [data-footnote-ref]:hover,
   .prose .data-footnote-backref:hover { text-decoration: underline; }
   /* The backref is the last thing on a note's last line and reads as punctuation, not as a
