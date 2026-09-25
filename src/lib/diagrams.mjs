@@ -210,7 +210,9 @@ export function finishDiagram(svg, id) {
  * strips one trailing newline from a fence's text; this strips every trailing newline and
  * normalises CRLF, so a checkout with other line endings still finds its cached diagram.
  */
-export const normalizeDiagram = (source) => String(source).replace(/\r\n?/g, '\n').replace(/\n+$/, '');
+// `(?<!\n)` anchors the match at the start of a newline run, so a long run in the middle of
+// a fence is not rescanned from every position (80,000 newlines took 3.7 s without it).
+export const normalizeDiagram = (source) => String(source).replace(/\r\n?/g, '\n').replace(/(?<!\n)\n+$/, '');
 
 /** 16 hex characters = 64 bits. A collision needs billions of diagrams; the corpus has 3. */
 export function diagramKey(source) {

@@ -59,7 +59,8 @@ const year = post.data.date.slice(0, 4);
  * essays sit at 0.25 and 0.28, and the other 28 posts all sit at 0.50 or above.
  */
 const HANGUL = /[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7A3]/g;
-const prose = md.replace(/```[\s\S]*?```/g, '').replace(/\[[^\]]*\]\([^)]*\)/g, '');
+// Linear on any input; see the note on LINK in src/lib/prose.ts.
+const prose = md.replace(/```[\s\S]*?```/g, '').replace(/\[[^\][]*\]\((?:[^()]|\([^()]*\))*\)/g, '');
 const kor = (prose.match(HANGUL) ?? []).length;
 const lat = (prose.match(/[A-Za-z]/g) ?? []).length;
 const lang = kor / Math.max(1, kor + lat) > 0.4 ? 'ko' : 'en';

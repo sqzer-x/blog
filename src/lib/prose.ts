@@ -7,13 +7,24 @@
  * long its paragraphs run.
  */
 
-/** Excluded from length and shape measurements: code fences, images, tables, link URLs. */
+/**
+ * Excluded from length and shape measurements: code fences, images, tables, link URLs.
+ *
+ * Every pattern here is linear on any input, which is a property to keep when editing
+ * them. `\s*` at the start of a line can run across blank lines and rescan them from each
+ * one (80,000 newlines took 4.9 s); `[^\]]*` and `[^)]*` let every unclosed `[` or `(` scan
+ * to the end of the post (1.3 s on 80,000 `[`). Here link text stops at the next bracket,
+ * and a destination may hold one level of parentheses, as Wikipedia addresses do.
+ */
+const LINK = /\[([^\][]*)\]\((?:[^()]|\([^()]*\))*\)/g;
+const IMAGE = /!\[[^\][]*\]\((?:[^()]|\([^()]*\))*\)/g;
+
 function plain(md: string): string {
   return md
     .replace(/```[\s\S]*?```/g, '')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/^\s*\|.*$/gm, '')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+    .replace(IMAGE, '')
+    .replace(/^[ \t]*\|.*$/gm, '')
+    .replace(LINK, '$1');
 }
 
 /** Keeps only lines outside code fences, so a `# comment` inside one is not read as a heading. */

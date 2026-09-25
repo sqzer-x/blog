@@ -6,7 +6,7 @@ import sitemap from '@astrojs/sitemap';
 import { satteri } from '@astrojs/markdown-satteri';
 import satteriFigure from './src/lib/satteri-figure.mjs';
 import satteriGuard from './src/lib/satteri-guard.mjs';
-import satteriProse from './src/lib/satteri-prose.mjs';
+import satteriProse, { satteriHeadingScan } from './src/lib/satteri-prose.mjs';
 import satteriDiagram from './src/lib/satteri-diagram.mjs';
 import satteriKorean from './src/lib/satteri-korean.mjs';
 import { diagramCopy, diagramKey, findMermaidFences, readDiagram } from './src/lib/diagrams.mjs';
@@ -90,6 +90,20 @@ const LANGS = [
  * One map, consumed in both places, is the only way those two stay in agreement.
  */
 const ALIAS = { vi: 'ini' };
+
+/**
+ * Lines of 2,000 characters or more are not tokenised. Shiki checks its 500 ms time limit
+ * between scans, and a single scan over a long bash line is already superlinear, so the
+ * limit does not bound it: measured, a 20 KB printf line took 3.0 s and a 50 KB one 19.8 s,
+ * and a few KB of `<<` threw RangeError, which emptied the post. Such a line now renders as
+ * one uncoloured token. The corpus's longest fence line is 1,639 characters.
+ */
+const lineCap = {
+  name: 'sqzer:line-cap',
+  preprocess(code, options) {
+    options.tokenizeMaxLineLength = 2000;
+  },
+};
 
 const codeBlock = {
   name: 'sqzer:code-block',
@@ -181,6 +195,7 @@ export default defineConfig({
     //   mdast: satteriFigure  — <figure>/<figcaption> out of the corpus's own convention
     //   hast:  satteriGuard   — refuses raw HTML, heading attributes, link schemes and
     //                           image hosts a post must not carry; the build fails
+    //   hast:  satteriHeadingScan — whether the post has an h1 or an h6; must precede satteriProse
     //   hast:  satteriProse   — heading demotion, intrinsic image size, table scrollers
     //   hast:  satteriDiagram — a mermaid fence -> the SVG baked from it before the build
     // Ordering matters: hastPlugins run after highlighting and BEFORE heading-id
@@ -188,7 +203,7 @@ export default defineConfig({
     // goes first, before satteriDiagram adds the one raw node the site trusts.
     processor: satteri({
       mdastPlugins: [satteriKorean(), satteriFigure()],
-      hastPlugins: [satteriGuard(), satteriProse({ publicDir: 'public' }), satteriDiagram()],
+      hastPlugins: [satteriGuard(), satteriHeadingScan(), satteriProse({ publicDir: 'public' }), satteriDiagram()],
       /*
        * Parser flags. Astro hands Sätteri only `{ gfm, smartPunctuation }`. Every other
        * entry in `Features` defaults off except `frontmatter`, which Sätteri turns on unless
@@ -271,7 +286,7 @@ export default defineConfig({
       langAlias: ALIAS,
       // Preserve lines by default. Folding is opt-in per block via ```<lang> wrap.
       wrap: false,
-      transformers: [codeBlock],
+      transformers: [lineCap, codeBlock],
     },
   },
 });

@@ -51,29 +51,42 @@ function intrinsicSize(file) {
 
 const sizes = new Map();
 
+/**
+ * The two answers the heading demotion below needs — is there an h1 to get out of the
+ * title's way, and is there an h6 already at the floor that a shift would collide with —
+ * found by visiting only those two tags, which Sätteri filters natively.
+ *
+ * This used to be a `before` hook walking the whole tree in JavaScript, which materialised
+ * every node: every Shiki token span and every SVG element included. Measured, a 9 KB wide
+ * table took 13.9 s that way, an 18 KB one ran out of Map space after 83 s, and a 12 KB
+ * nested list overflowed the stack; either failure shipped the post empty. The output is
+ * byte-identical.
+ *
+ * It is a plugin of its own and must come BEFORE satteriProse in hastPlugins: one plugin's
+ * visitors all run before the next plugin starts, so the flags are set before the
+ * demotion reads them. Placed after, the demotion would silently never happen.
+ */
+export function satteriHeadingScan() {
+  return {
+    name: 'heading-scan',
+    element: {
+      filter: ['h1', 'h6'],
+      visit(node, ctx) {
+        if (node.tagName === 'h1') ctx.data.proseHasH1 = true;
+        else ctx.data.proseHasH6 = true;
+      },
+    },
+  };
+}
+
 export default function satteriProse({ publicDir = 'public' } = {}) {
   return {
     name: 'prose',
-    before(root, ctx) {
-      // One pre-scan so every heading visit shares the same answer. Both questions are
-      // answered in the same walk: is there an h1 to get out of the title's way, and is
-      // there an h6 already at the floor that a shift would collide with.
-      let hasH1 = false;
-      let hasH6 = false;
-      (function walk(n) {
-        if (n.type === 'element') {
-          if (n.tagName === 'h1') hasH1 = true;
-          else if (n.tagName === 'h6') hasH6 = true;
-        }
-        for (const child of n.children ?? []) walk(child);
-      })(root);
-      ctx.data.proseDemote = hasH1 && !hasH6;
-    },
     element: [
       {
         filter: ['h1', 'h2', 'h3', 'h4', 'h5'],
         visit(node, ctx) {
-          if (!ctx.data.proseDemote) return;
+          if (!ctx.data.proseHasH1 || ctx.data.proseHasH6) return;
           return { ...node, tagName: `h${Number(node.tagName[1]) + 1}` };
         },
       },
