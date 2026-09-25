@@ -11,12 +11,12 @@
  *    starts being a collision: h6 is the floor, so h5 would land on top of it and the
  *    document would lose a level it was using. --fs-h5 and --fs-h6 are different sizes, so
  *    that is visible, not just semantic. No corpus post has an h6 today, so this guard has
- *    never fired; it is here because the premise of the contents rail is that every post
- *    grows headings, and a post deep enough to reach h6 is exactly the one that would.
- * 2. Stamp intrinsic image size. The 26 images live in public/uploads and so bypass
- *    Astro's image service: no width/height, and every one shifts layout while loading.
- *    With the attributes present and no CSS `width`, the 13 images narrower than the 728px
- *    column render at their own size instead of being upscaled.
+ *    never fired; it is here for the first post deep enough to reach h6, which is exactly
+ *    the post the shift would damage.
+ * 2. Stamp intrinsic image size. Post and About images live in public/uploads and so
+ *    bypass Astro's image service: no width/height, and every one shifts layout while
+ *    loading. With the attributes present and no CSS `width`, an image narrower than the
+ *    928px column renders at its own size instead of being upscaled.
  * 3. Wrap tables. 4 posts contain tables; each gets a focusable scroll container so a wide
  *    table never makes the page itself scroll sideways.
  */
@@ -56,11 +56,10 @@ const sizes = new Map();
  * title's way, and is there an h6 already at the floor that a shift would collide with —
  * found by visiting only those two tags, which Sätteri filters natively.
  *
- * This used to be a `before` hook walking the whole tree in JavaScript, which materialised
- * every node: every Shiki token span and every SVG element included. Measured, a 9 KB wide
- * table took 13.9 s that way, an 18 KB one ran out of Map space after 83 s, and a 12 KB
- * nested list overflowed the stack; either failure shipped the post empty. The output is
- * byte-identical.
+ * Not a `before` hook walking the whole tree in JavaScript: that materialises every node,
+ * every Shiki token span and every SVG element included. Measured, a 9 KB wide table took
+ * 13.9 s that way, an 18 KB one ran out of Map space after 83 s, and a 12 KB nested list
+ * overflowed the stack; either failure ships the post empty.
  *
  * It is a plugin of its own and must come BEFORE satteriProse in hastPlugins: one plugin's
  * visitors all run before the next plugin starts, so the flags are set before the
@@ -112,7 +111,7 @@ export default function satteriProse({ publicDir = 'public' } = {}) {
           ctx.wrapNode(node, {
             type: 'element', tagName: 'div',
             // A group, as the code plates are: a region is a landmark, and the Hitchhiker post
-            // listed three landmarks all named "Table".
+            // would list three landmarks all named "Table".
             properties: { className: ['scroller'], tabindex: '0', role: 'group', 'aria-label': 'Table' },
             children: [],
           });

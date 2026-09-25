@@ -24,12 +24,13 @@ const HANGUL_ALL = new RegExp(HANGUL.source, 'g');
  *
  * It follows the body, not the title, and is measured on prose only. The label drives
  * leading, line breaking and speech, so it has to describe what is read. Keying off the
- * title would mislabel AI Odyssey and VTZero; counting Hangul against every character
- * would mislabel the Korean technical posts, whose shell transcripts and URLs swamp the
- * prose — measured that way sysmon lands at 0.14 and journalctl at 0.29, both plainly
- * Korean documents. With fences and link targets dropped and Hangul weighed against Latin
- * letters, the corpus splits with nothing near the line: the two English essays sit at
- * 0.25 and 0.28, and the other 28 posts all sit at 0.50 or above.
+ * title would mislabel the seven Korean posts with Latin titles, VTZero and journalctl
+ * among them; counting Hangul against every non-space character would mislabel the Korean
+ * technical posts, whose shell transcripts and URLs swamp the prose — measured that way
+ * sysmon lands at 0.14 and journalctl at 0.29, both plainly Korean documents. With fences
+ * and link targets dropped and Hangul weighed against Latin letters, the corpus splits with
+ * nothing near the line: the two English essays sit at 0.25 and 0.28, and the other 28
+ * posts all sit at 0.49 or above.
  */
 export function docLang(md: string): 'en' | 'ko' {
   // Linear on any input; see the note on LINK in prose.ts.

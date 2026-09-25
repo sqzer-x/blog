@@ -14,8 +14,12 @@
  *
  * The cache key is a hash over the fence source *and* everything else that could move a
  * pixel — schema version, mermaid config, palette, and the content-hashed font filenames.
- * Re-subset a face and its filename changes, so every diagram invalidates itself. Nothing
- * here needs a manifest: the key *is* the filename.
+ * Nothing here needs a manifest: the key *is* the filename.
+ *
+ * Re-subsetting a face changes its filename, and so every key, only once DIAGRAM_FONTS
+ * below names the new file. scripts/subset-fonts.py rewrites the name in fonts.css,
+ * Base.astro and tokens.css but not here, and deletes the old file, so until this list is
+ * edited by hand the keys stay the same and the next render fails on a missing font.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -95,7 +99,7 @@ const ACCENT_WASH = '#f7ebeb'; /* --crimson-wash */
  * Height is the price, and it is the right one: a page scrolls down already.
  *
  * It does re-break text the author did not break, which is the thing flowchart.wrappingWidth
- * above is set to 400 to avoid. The two are not the same call. A <br/> in a flowchart label
+ * is set to 400 to avoid. The two are not the same call. A <br/> in a flowchart label
  * is the author drawing a box; a long sentence on an arrow is prose, and mermaid breaks it on
  * spaces, so the Korean labels here wrap where their words already end.
  */
@@ -182,12 +186,15 @@ export const DIAGRAM_CSS = ['.edgeLabel rect{opacity:1;}'];
  * Make one rendered SVG fit to be *inlined into HTML*, which is not the same document type
  * mermaid serialised it for, and append the rules above.
  *
- * The bug this fixes is silent. Mermaid serialises as XML, so a child combinator inside its
- * stylesheet comes out escaped: `.noteText&gt;tspan`. Re-parsed by an HTML parser, a <style>
- * element's content is raw text — nothing decodes the entity, the selector is invalid, and
- * because one bad selector voids the whole comma-separated group it takes `.noteText` down
- * with it. Five rules per sequence diagram, covering note, loop, label and actor text. They
- * happen to be black on black here, so it cost nothing this time; it would not stay that way.
+ * Mermaid serialises as XML, so a child combinator inside its stylesheet comes out escaped:
+ * `.noteText&gt;tspan`. Inside an inline <svg> the HTML parser decodes that again, so the
+ * browser reads the selector correctly either way. The decode here is for the
+ * Content-Security-Policy: astro.config.mjs hashes each diagram's <style> text as it stands
+ * in the file, the browser hashes the text it parsed, and the two agree only once the file
+ * holds the decoded text. A mismatch drops the whole stylesheet without a sound.
+ * Five rules per sequence diagram use the combinator: actor, label, loop, section-title and
+ * note text. They are not decoration: without `text.actor>tspan` the participant names
+ * inherit the actor box's sand fill and vanish into it.
  */
 export function finishDiagram(svg, id) {
   const rules = DIAGRAM_CSS.map((rule) => `#${id} ${rule}`).join('');

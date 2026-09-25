@@ -6,8 +6,9 @@ export const asciiLower = (s: string): string =>
   s.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
 
 /**
- * YAML parses `2025-12-07` into a Date. It must be read back in UTC: reading it in local
- * time shifts roughly half the corpus by a day, which would also move every post URL.
+ * YAML parses `2025-12-07` into a Date at midnight UTC. It must be read back in UTC: read
+ * in local time west of UTC, every date falls back a day, which would also move any post
+ * dated January 1 into the previous year's URL.
  */
 const dateString = z.union([z.string(), z.date()]).transform((v) =>
   typeof v === 'string' ? v.slice(0, 10) : v.toISOString().slice(0, 10),
@@ -46,7 +47,10 @@ const writing = defineCollection({
     date: dateString,
     /** In an index without images the deck carries the entry. May be empty until backfilled. */
     deck: optText,
-    /** Sub-views split on this value rather than on a URL segment. Untyped is the norm. */
+    /**
+     * Published as data-type on the /writing/ entry, which is what a later split into
+     * sub-views would key on rather than a URL segment. Untyped is the norm.
+     */
     type: blankable(z.enum(['essay', 'research']).optional()),
     /** A blank `tags:` and `tags: []` mean the same thing, and neither prints a tag list. */
     tags: blankable(z.array(z.string()).default([])),

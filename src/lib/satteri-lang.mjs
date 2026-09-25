@@ -2,13 +2,14 @@
  * satteri-lang — `lang` on the passages of a post that are not in the post's language.
  *
  * The article element carries one lang, docLang() of the body. A screen reader picks its
- * voice from lang (WCAG 3.1.2), so two kinds of passage were read in the wrong one:
+ * voice from lang (WCAG 3.1.2), so without this two kinds of passage are read in the wrong
+ * one:
  *
  *   sections   The bilingual essays split themselves with a heading that reads exactly
  *              EN or KR. Everything after it, up to the next heading of the same level or
  *              higher, is in that language. AI Odyssey is an English document by its prose
- *              ratio, so its KR half — 1,765 Hangul characters — was read by an English
- *              voice.
+ *              ratio, so its KR half — 1,754 Hangul characters — would be read by an
+ *              English voice.
  *   headings   A heading in the other script, like the English h3s of a Korean post.
  *
  * Only top-level blocks and headings are marked, and only when they differ from the

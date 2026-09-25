@@ -10,8 +10,9 @@
  * ── 1. A single `~` is a range, not a deletion ───────────────────────────────────────
  * GFM strikethrough pairs single tildes as well as double ones, and Korean writes ranges
  * with a tilde constantly: `그림 3~4`, `5~8`, `25~50바이트`, `1Gbps ~ 100Gbps`. Two on one
- * line are a matched pair, so everything between them is struck through. Measured in
- * dist/ before this plugin — content/writing/how-to-win-best-paper-ko.md:231 shipped as
+ * line are a matched pair, so everything between them is struck through. Without this
+ * plugin, the paragraph of content/writing/how-to-win-best-paper-ko.md that names figures
+ * 1 to 8 renders as
  *
  *     그림 3<del>4는 … 그림 5</del>8에는 결과와 분석이 담겨 있을 수 잇다.
  *
@@ -33,17 +34,17 @@
  * The closing run is preceded by `’`, followed by `고` — a letter, so not right-flanking —
  * so it cannot close, and the asterisks ship as literal text in the middle of the prose.
  *
- * Measured across the built site before this plugin: **12 runs in 3 posts**, and every one
- * of them had the identical shape — content ending in Unicode punctuation (Pe or Pf, a
- * closing bracket or a closing quote) with a CJK letter (Lo) immediately after the closing
- * run. That is not a coincidence, it is the flanking rule's blind spot, and it is what the
- * `cjk-friendly` CommonMark proposals exist to close upstream.
+ * Without this plugin the corpus has **12 such runs in 3 posts**, and every one of them has
+ * the identical shape — content ending in Unicode punctuation (Pe or Pf, a closing bracket
+ * or a closing quote) with a CJK letter (Lo) immediately after the closing run. That is not
+ * a coincidence, it is the flanking rule's blind spot, and it is what the `cjk-friendly`
+ * CommonMark proposals exist to close upstream.
  *
  * So the repair is written as that exact shape rather than as a general "re-emphasise
  * stray asterisks" pass. It fires only where a CJK letter sits against the delimiter, i.e.
  * only where the flanking rule was answering a question about a script it does not model.
- * On the same corpus the one other literal-asterisk pair — bind9's `* port *`, whitespace
- * on both sides of the content — is left alone, which is CommonMark being right.
+ * A literal pair with whitespace on both sides of the content, like `* port *`, is left
+ * alone, which is CommonMark being right.
  *
  * Known limits, stated rather than hidden. Both are cases where the pair never reaches this
  * plugin intact, and both need a parser, not a visitor:
@@ -52,8 +53,9 @@
  *   - Two such runs on ONE line can be mispaired by the parser before anything gets here.
  *     Measured on `앞**‘강조’**뒤 그리고 앞**‘강조’** 뒤.`: the first `**` cannot open and the
  *     second can, so the parser bolds from the second to the third and leaves the outer two
- *     asterisks stranded. One run on a line — which is all 12 of the live ones, and the
- *     normal way anyone writes — leaves the whole pair literal, and that is repaired.
+ *     asterisks stranded. One run on a line — the normal way anyone writes — leaves the
+ *     whole pair literal, and that is repaired. All 12 in the corpus are repaired,
+ *     including the one line that holds two closing-shape runs, a `**` and a `*`.
  */
 
 /**
@@ -72,7 +74,7 @@ const PUNCT = /\p{P}/u;
  * A `*` or `**` pair with no whitespace just inside either delimiter and no `*` in the
  * content. Those two constraints are CommonMark's own (a run cannot open on trailing
  * whitespace or close on leading whitespace); repeating them here is what keeps the pass
- * from touching `2 * 3 * 4` or bind9's `* port *`.
+ * from touching `2 * 3 * 4` or `* port *`.
  */
 const PAIR = /(\*\*|\*)(?![\s*])([^*]*[^\s*])\1/g;
 

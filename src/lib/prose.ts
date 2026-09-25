@@ -39,11 +39,8 @@ function outsideFences(md: string): string {
 }
 
 /*
- * `readingMinutes` stood here — 500 Korean characters plus 230 Latin words per minute,
- * printed as "N min read" in the article header. The header no longer carries a reading
- * estimate (the reference prints a title, a byline and a date and nothing else), and the
- * article template was its only caller, so it is deleted rather than left as an export
- * with no importer. `plain()` above is still read by both functions below.
+ * No reading-time estimate is derived here: the reference's article header is a title, a
+ * byline and a date, with no estimate of reading time, and this site's header follows it.
  */
 
 export type ProseShape = 'essay' | 'technical';
@@ -58,14 +55,15 @@ export type ProseRhythm = 'flow' | 'staccato';
  *
  * rhythm:
  *   staccato  — no subheadings, median paragraph <= 60 characters, 8+ paragraphs.
- *               A 728px column at 20px fits about 36 Korean characters per line, so a
- *               60-character median is 1.7 lines. One-line paragraphs stacked at 24px
- *               intervals stop reading as prose and start reading as verse.
- *               (i-have-to: 69 paragraphs, median 40 chars; will-the-next: 92 at 45.)
+ *               The 928px column at 16px holds more than 60 characters of Korean prose
+ *               per line, so a 60-character median is a paragraph of one line.
+ *               One-line paragraphs stacked one gap apart stop reading as prose and
+ *               start reading as verse.
+ *               (i-have-to: 69 paragraphs, median 40 chars; will-the-next: 92 at 46.)
  *               These switch from blank-line breaks to indented paragraphs in CSS.
  *   flow      — everything else; keeps blank-line paragraph breaks.
  *
- * Measured split: staccato 11, technical 11, flow-essay 8 = 30.
+ * Measured split: staccato 10, technical 11, flow-essay 9 = 30.
  */
 export function proseShape(md: string): {
   shape: ProseShape;
@@ -96,9 +94,9 @@ export function proseShape(md: string): {
 }
 
 /**
- * Fallback excerpt used where a deck is missing. Because `deck` is empty on all 30 posts,
- * every page currently ships an empty `<meta name="description">` — a real defect in the
- * deployed build.
+ * Fallback excerpt used where a deck is missing, which is every post while `deck` is empty
+ * on all 30: the meta description, the JSON-LD description and the feed item all come from
+ * here.
  */
 export function excerpt(md: string, max = 160): string {
   const body = outsideFences(plain(md));
@@ -147,7 +145,7 @@ function readable(md: string): string {
   return out + inline(s.slice(from));
 }
 
-const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' };
 
 /** Prose outside code spans. */
 const inline = (t: string): string =>
@@ -159,7 +157,7 @@ const inline = (t: string): string =>
     .replace(/&(#\d{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z]+);/g, (m, e: string) => {
       if (e[0] !== '#') return NAMED[e] ?? m;
       const n = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-      return n > 0 && n <= 0x10ffff && (n < 0xd800 || n > 0xdfff) ? String.fromCodePoint(n) : '�';
+      return n > 0 && n <= 0x10ffff && (n < 0xd800 || n > 0xdfff) ? String.fromCodePoint(n) : '\ufffd';
     });
 
 /** Date formatting, pinned to UTC: reading in local time shifts corpus dates by a day. */

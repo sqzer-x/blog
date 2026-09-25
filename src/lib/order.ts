@@ -1,9 +1,10 @@
 /**
  * Ordering: date DESC, then title by Intl.Collator('en'), then path.
  *
- * This single order drives the index, the feed and the sitemap at once, so it must never
- * be delegated to filesystem or database order. Sorting by raw code points instead would
- * put `TSO` ahead of `journalctl` and silently reshuffle a whole year of posts.
+ * This single order drives the Writing index and the feed at once, so it must never be
+ * delegated to filesystem or database order. Sorting by raw code points instead would put
+ * `TSO` ahead of `journalctl`, two posts that share a date, because code points order every
+ * capital before every lowercase letter.
  */
 const collator = new Intl.Collator('en');
 

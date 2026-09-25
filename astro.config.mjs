@@ -50,15 +50,16 @@ const DIAGRAM_STYLE_HASHES = [...diagramCopies('content')].flatMap(([key, n]) =>
 });
 
 /**
- * Grammars preloaded into the Shiki highlighter: the fence languages the corpus uses.
+ * Grammars preloaded into the Shiki highlighter: the fence languages the corpus uses, plus
+ * json beside jsonc.
  *
  * A warm-up list, NOT a gate — measured rather than assumed. A fence in a language outside
  * it still highlights (```rust emits data-language="rust" with real tokens), and a fence in
  * a language that exists nowhere logs `[Shiki] The language "notalanguage" doesn't exist,
  * falling back to "plaintext"`, emits data-language="plaintext" and leaves the build green.
- * An earlier note here claimed the opposite — that anything outside the list "fails the
- * build" — and nothing in this pipeline does that. What the list buys is that the languages
- * the corpus does use are resolved once at startup instead of on first sight.
+ * Nothing in this pipeline fails the build over a fence language. What the list buys is
+ * that the languages the corpus does use are resolved once at startup instead of on first
+ * sight.
  * Aliases already ship in the Shiki bundle: bash/sh/zsh resolve to shellscript,
  * console resolves to shellsession.
  *
@@ -72,18 +73,6 @@ const LANGS = [
 ];
 
 /**
- * Code block wrapper. Wraps `<pre>` in `<figure class="code">` and labels the language.
- *
- * Do not match on the class: it catches nothing. Astro's built-in transformer runs
- * before user transformers and rewrites `shiki` to `astro-code` in `class`
- * (the pre hook in @astrojs/internal-helpers/dist/shiki.js). The only stable contract
- * is `dataLanguage`, which that same hook sets directly.
- *
- * The root hook must leave **exactly one** child. Astro reads only the first child of
- * root, via `codeToHast(...).then((root) => root.children[0])`
- * (@astrojs/markdown-satteri/dist/satteri-processor.js).
- */
-/**
  * Fence words whose grammar is not what the word says. `langAlias` below hands the
  * grammar to Shiki, but Shiki writes `dataLanguage` from the *unresolved* word, so
  * without this same map the wrapper labels a journald.conf block "vi" — a label that
@@ -96,8 +85,8 @@ const ALIAS = { vi: 'ini' };
  * Lines of 2,000 characters or more are not tokenised. Shiki checks its 500 ms time limit
  * between scans, and a single scan over a long bash line is already superlinear, so the
  * limit does not bound it: measured, a 20 KB printf line took 3.0 s and a 50 KB one 19.8 s,
- * and a few KB of `<<` threw RangeError, which emptied the post. Such a line now renders as
- * one uncoloured token. The corpus's longest fence line is 1,639 characters.
+ * and a few KB of `<<` threw RangeError, which emptied the post. Such a line renders as one
+ * uncoloured token. The corpus's longest fence line is 1,639 characters.
  */
 const lineCap = {
   name: 'sqzer:line-cap',
@@ -106,6 +95,18 @@ const lineCap = {
   },
 };
 
+/**
+ * Code block wrapper. Wraps `<pre>` in `<figure class="code">` and labels the language.
+ *
+ * Do not match on the class: it catches nothing. Astro's built-in transformer runs
+ * before user transformers and rewrites `shiki` to `astro-code` in `class`
+ * (the pre hook in @astrojs/internal-helpers/dist/shiki.js). The only stable contract
+ * is `dataLanguage`, which that same hook sets directly.
+ *
+ * The root hook must leave **exactly one** child. Astro reads only the first child of
+ * root, via `codeToHast(...).then((root) => root.children[0])`
+ * (@astrojs/markdown-satteri/dist/satteri-processor.js).
+ */
 const codeBlock = {
   name: 'sqzer:code-block',
   root(root) {
@@ -146,9 +147,9 @@ const codeBlock = {
 
 export default defineConfig({
   site: 'https://blog.sqzer.com',
-  /* The Hugo site this replaced shipped a sitemap and the migration lost it. robots.txt
-     names it, so it has to exist: a robots line pointing at a 404 is the same defect as
-     the <head> feed link that pointed at nothing. */
+  /* The Hugo site this replaced shipped a sitemap, and robots.txt (src/pages/robots.txt.ts)
+     names one, so it has to exist: a robots line pointing at a 404 is a dead link handed
+     to every crawler that reads the file. */
   integrations: [sitemap()],
   output: 'static',
   // Every canonical URL ends in a trailing slash; the directory format emits dist/<path>/index.html.
@@ -210,8 +211,8 @@ export default defineConfig({
        * Parser flags. Astro hands Sätteri only `{ gfm, smartPunctuation }`. Every other
        * entry in `Features` defaults off except `frontmatter`, which Sätteri turns on unless
        * told otherwise (`features.frontmatter ?? true` in satteri/dist/compile.js). What is
-       * listed here is the whole of the difference from stock, and each line is a defect
-       * that was measurable in dist/.
+       * listed here is the whole of the difference from stock, and each entry says what it
+       * fixes or makes possible.
        */
       features: {
         /*
@@ -226,29 +227,28 @@ export default defineConfig({
         frontmatter: false,
         /*
          * Smart punctuation, minus the dash rule. Quotes and ellipses are worth having in
-         * 70-odd lines of prose; the dash rule is not, because it does not know what a CLI
-         * flag is. Measured in the built site before this line: journalctl's
-         * `#### 시간 범위 지정 (--since, --until)` shipped as
+         * prose; the dash rule is not, because it does not know what a CLI flag is. With it
+         * on, journalctl's `#### 시간 범위 지정 (--since, --until)` renders as
          * `(–since, –until)`, an en dash a reader cannot paste into a shell. Only prose
-         * outside backticks was ever affected — code spans and fences are untouched — but on
-         * a sysadmin blog a flag named in a heading is normal writing, not markup.
+         * outside backticks is affected — code spans and fences are untouched — but on a
+         * sysadmin blog a flag named in a heading is normal writing, not markup.
          */
         smartPunctuation: { dashes: false },
         /*
          * `## Heading { #id }` sets the anchor. Without it the braces render as literal
          * text in the heading AND in the contents list, and the generated slug swallows
-         * them (`…-custom-id-`). Now that every post is written to carry a contents rail,
+         * them (`…-custom-id-`). The contents list and rail link to headings by anchor, so
          * an author needs a way to keep an anchor stable across a retitling. No corpus
          * heading contains a brace, so nothing existing changes shape.
          */
         headingAttributes: true,
         /*
          * Not enabled, and each is a decision rather than an oversight:
-         *   math          0 real formulas in the corpus. The 2 `$…$` hits are shell
-         *                 variables, and `singleDollarTextMath` is on by default — turning
-         *                 math on would eat them.
+         *   math          no post contains a formula, and `singleDollarTextMath` is on by
+         *                 default — turning math on would read a `$…$` pair in prose, two
+         *                 shell variables or two prices, as one.
          *   subscript     `~sub~` collides head-on with GFM strikethrough, which is the
-         *                 very collision satteri-tilde exists to undo.
+         *                 very collision satteri-korean exists to undo.
          *   superscript   `^x^` is unused, and ^ appears in regexes and shell prose.
          *   directive     `:::note` blocks need styling per directive to mean anything.
          *   wikilinks     no wiki.
@@ -264,10 +264,11 @@ export default defineConfig({
      * highlighting intact so satteriDiagram can swap in the SVG that
      * scripts/render-diagrams.mjs baked from it.
      *
-     * `math` was listed here too and is gone because it never did anything. Astro ORs its
-     * own `defaultExcludeLanguages = ["math"]` into this check unconditionally
-     * (@astrojs/internal-helpers/dist/markdown.js), so math is excluded whether or not it
-     * is named, and no value of this option — and no langAlias — can un-exclude it.
+     * `math` is not listed because naming it does nothing. Astro ORs its own
+     * `defaultExcludeLanguages = ["math"]` (@astrojs/internal-helpers/dist/markdown.js) into
+     * this check unconditionally (the highlight plugin in
+     * @astrojs/markdown-satteri/dist/satteri-processor.js), so math is excluded whether or
+     * not it is named, and no value of this option — and no langAlias — can un-exclude it.
      *
      * What that costs, measured: an excluded language skips the highlight plugin, so a
      * ```math fence is the one construct in the language that arrives as a bare
@@ -275,8 +276,9 @@ export default defineConfig({
      * lands on the plate, including the two cases that look like they might not — an
      * indented code block and a fence with no language both come through as
      * figure.code[data-language=plaintext]. The corpus has 0 math fences and math parsing
-     * is off, so this is left alone rather than fixed with a plugin; `.prose pre` in the
-     * article template keeps the bare case from scrolling the page sideways.
+     * is off, so this is left alone rather than fixed with a plugin;
+     * `.prose pre:not(.code *)` in the article template keeps the bare case from scrolling
+     * the page sideways.
      */
     syntaxHighlight: { type: 'shiki', excludeLangs: ['mermaid'] },
     shikiConfig: {
