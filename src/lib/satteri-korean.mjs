@@ -11,8 +11,8 @@
  * GFM strikethrough pairs single tildes as well as double ones, and Korean writes ranges
  * with a tilde constantly: `그림 3~4`, `5~8`, `25~50바이트`, `1Gbps ~ 100Gbps`. Two on one
  * line are a matched pair, so everything between them is struck through. Without this
- * plugin, the paragraph of content/writing/how-to-win-best-paper-ko.md that names figures
- * 1 to 8 renders as
+ * plugin, the paragraph of content/writing/Methodology-for-Writing-a-Research-Paper_KR.md
+ * that names figures 1 to 8 renders as
  *
  *     그림 3<del>4는 … 그림 5</del>8에는 결과와 분석이 담겨 있을 수 잇다.
  *

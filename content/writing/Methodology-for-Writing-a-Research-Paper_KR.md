@@ -1,6 +1,6 @@
 ---
-title: "논문 작성 방법론"
-titleKo: ""
+title: "Methodology for Writing a Research Paper_KR"
+titleKo: "논문 작성 방법론"
 date: 2026-09-08
 deck: ""
 type:
