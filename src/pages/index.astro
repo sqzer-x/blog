@@ -3,18 +3,35 @@ import Base from '../layouts/Base.astro';
 import { getEntry, render } from 'astro:content';
 import { hasHangul } from '../lib/hangul';
 import { assertRendered } from '../lib/rendered';
+import reading from '../lib/goodreads.json';
 
 const entry = await getEntry('about', 'about');
 assertRendered(entry!);
 const { Content } = await render(entry!);
+
+/* The reading list: the most recently finished books on the Goodreads read shelf, which
+   scripts/goodreads.mjs fetches at build time. A book with no finish date sorts by the day
+   it was shelved. The subtitle after ": " is dropped, "Collective Illusions" rather than
+   the eleven words after it, so a title holds to a line or two. */
+const READING_COUNT = 5;
+const books = [...reading.books]
+  .sort((a, b) => (b.readAt ?? b.addedAt ?? '').localeCompare(a.readAt ?? a.addedAt ?? ''))
+  .slice(0, READING_COUNT);
+const shortTitle = (t: string) => t.replace(/:\s.*$/, '');
+const ym = (iso: string) => `${iso.slice(0, 4)}.${iso.slice(5, 7)}`;
+/* Kana or CJK ideographs. Japanese titles are common on the shelf, and lang="ja" is what
+   picks a Japanese voice and Japanese glyph forms over the page's lang="en". */
+const KANA_KANJI = /[぀-ヿ一-鿿]/;
+const titleLang = (t: string) => (hasHangul(t) ? 'ko' : KANA_KANJI.test(t) ? 'ja' : undefined);
 
 /* Ask the body, not the metadata. The title and description below are English whatever
    about.md says, so only the body can tell whether the page needs the 118KB Korean face.
    about.md is English throughout today, so the answer is false and the page fetches no
    Korean font. The test stays because the answer is the body's to give: one Korean line
    added to about.md starts needing that face, and nothing else in this file would
-   notice. */
-const ko = hasHangul(entry!.body);
+   notice. The reading list is part of the body for this purpose: a Korean book title
+   needs the face just as a Korean sentence does. */
+const ko = hasHangul(entry!.body) || books.some((b) => hasHangul(b.title + b.author));
 ---
 <Base
   title="sqzer"
@@ -28,6 +45,32 @@ const ko = hasHangul(entry!.body);
       the other section pages: the reference prints no page title either. */}
   <h1 class="sr-only">About</h1>
   <article class="about"><Content /></article>
+
+  {/* Rows on the Writing index's pattern: a date rail, the title, and here the rating in
+      place of a deck. The stars are drawn twice over, filled and empty, and hidden from
+      assistive tech, which reads the rating from the label instead. */}
+  {books.length > 0 && (
+    <section class="reading" aria-labelledby="reading">
+      <h2 class="reading__label" id="reading">Reading</h2>
+      <ol class="reading__list">
+        {books.map((b) => (
+          <li class="book">
+            {b.readAt && <time class="book__date" datetime={b.readAt.slice(0, 7)}>{ym(b.readAt)}</time>}
+            <p class="book__body">
+              <a class="book__title" href={b.url} lang={titleLang(b.title)}>{shortTitle(b.title)}</a>
+              <span class="book__author">{b.author}</span>
+            </p>
+            {b.rating > 0 && (
+              <span class="book__rating" role="img" aria-label={`Rated ${b.rating} out of 5`}>
+                <span class="book__stars" aria-hidden="true">{'★'.repeat(b.rating)}</span><span class="book__stars book__stars--empty" aria-hidden="true">{'★'.repeat(5 - b.rating)}</span>
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+      <p class="reading__more"><a href="https://www.goodreads.com/user/show/205369673-hyukjin-an">More on Goodreads</a></p>
+    </section>
+  )}
 </Base>
 
 {/* is:global for the same reason the article page uses it: the elements <Content />
@@ -75,4 +118,81 @@ const ko = hasHangul(entry!.body);
   }
   .about :is(p, li, h1, h2, h3, h4) { overflow-wrap: break-word; }
   .about a { overflow-wrap: anywhere; }
+
+  /* The label is the site's kicker idiom with its 4px x 3rem rule, as on the Writing
+     index's year headings, rather than a second heading style for one section. */
+  .reading { margin-block-start: var(--sp-48); }
+  .reading__label {
+    margin: 0 0 var(--sp-40);
+    font-family: var(--font-body);
+    font-size: var(--fs-small);
+    font-weight: 700;
+    line-height: var(--lh-medium);
+    letter-spacing: 0.105rem;
+    text-transform: uppercase;
+    color: var(--ppc-text);
+  }
+  .reading__label::before {
+    content: "";
+    display: block;
+    inline-size: 3rem;
+    border-top: 4px solid var(--ppc-ui);
+    margin-block-end: var(--sp-40);
+  }
+  /* Each book is a Writing index row in miniature: the same 72px date rail and 24px gap,
+     hairlines between rows, a title in --page-fg that steps to crimson under the pointer.
+     The rail carries the month the book was finished; the rating takes the end column. */
+  .reading__list { list-style: none; margin: 0; padding: 0; }
+  .book {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    grid-template-areas: "date body rating";
+    column-gap: 1.5rem;
+    align-items: baseline;
+    padding-block: var(--sp-30);
+    border-bottom: 1px solid var(--page-hairline);
+  }
+  .book:last-child { border-bottom: none; }
+  .book__date {
+    grid-area: date;
+    justify-self: end;
+    font-size: var(--fs-small);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: var(--page-meta);
+    white-space: nowrap;
+  }
+  .book__body { grid-area: body; margin: 0; line-height: var(--lh-medium); }
+  .book__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h6);
+    font-weight: 500;
+    color: var(--page-fg);
+  }
+  .book__title:is(:hover, :focus-visible) { color: var(--crimson); }
+  .book__author {
+    margin-inline-start: 0.6em;
+    font-size: var(--fs-small);
+    color: var(--page-meta);
+    white-space: nowrap;
+  }
+  .book__rating { grid-area: rating; font-size: var(--fs-small); letter-spacing: 0.08em; white-space: nowrap; }
+  .book__stars { color: var(--crimson); }
+  .book__stars--empty { color: var(--page-hairline); }
+  .reading__more {
+    margin-block-start: var(--sp-40);
+    padding-inline-start: calc(4.5rem + 1.5rem);
+    font-size: var(--fs-small);
+  }
+
+  /* Below 40rem the rail would leave the title too narrow a column beside the rating, so
+     the month moves above the title and the rows start at the page edge. */
+  @media (max-width: 40rem) {
+    .book {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "date date" "body rating";
+    }
+    .book__date { justify-self: start; }
+    .reading__more { padding-inline-start: 0; }
+  }
 </style>

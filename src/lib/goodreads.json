@@ -1,0 +1,86 @@
+{
+ "feed": "https://www.goodreads.com/review/list_rss/205369673?shelf=read",
+ "books": [
+  {
+   "id": "7155145",
+   "title": "Linchpin: Are You Indispensable?",
+   "author": "Seth Godin",
+   "rating": 5,
+   "readAt": "2025-03-10",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/7155145"
+  },
+  {
+   "id": "450667",
+   "title": "69",
+   "author": "Ryū Murakami",
+   "rating": 4,
+   "readAt": "2025-12-25",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/450667"
+  },
+  {
+   "id": "2691373",
+   "title": "自殺よりはSEX—村上龍の恋愛・女性論",
+   "author": "Ryū Murakami",
+   "rating": 5,
+   "readAt": "2026-02-11",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/2691373"
+  },
+  {
+   "id": "17789236",
+   "title": "クズの本懐 1 [Kuzu no Honkai 1] (Scum's Wish, #1)",
+   "author": "Mengo Yokoyari",
+   "rating": 5,
+   "readAt": "2024-12-13",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/17789236"
+  },
+  {
+   "id": "58340695",
+   "title": "Collective Illusions: Conformity, Complicity, and the Science of Why We Make Bad Decisions",
+   "author": "Todd Rose",
+   "rating": 4,
+   "readAt": "2024-12-30",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/58340695"
+  },
+  {
+   "id": "34346984",
+   "title": "言の葉の庭 [Kotonoha no Niwa]",
+   "author": "Makoto Shinkai",
+   "rating": 4,
+   "readAt": "2017-02-10",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/34346984"
+  },
+  {
+   "id": "58580969",
+   "title": "Look Back",
+   "author": "Tatsuki Fujimoto",
+   "rating": 3,
+   "readAt": "2026-10-10",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/58580969"
+  },
+  {
+   "id": "52219386",
+   "title": "Almond",
+   "author": "Sohn Won-Pyung",
+   "rating": 3,
+   "readAt": "2025-12-01",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/52219386"
+  },
+  {
+   "id": "51710349",
+   "title": "The WEIRDest People in the World: How the West Became Psychologically Peculiar and Particularly Prosperous",
+   "author": "Joseph Henrich",
+   "rating": 4,
+   "readAt": "2025-03-29",
+   "addedAt": "2026-10-13",
+   "url": "https://www.goodreads.com/book/show/51710349"
+  }
+ ]
+}
