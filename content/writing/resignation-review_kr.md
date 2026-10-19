@@ -1,5 +1,5 @@
 ---
-title: "퇴사리뷰"
+title: "Resignation review"
 titleKo: ""
 date: 2026-06-30
 deck: ""

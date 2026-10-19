@@ -1,5 +1,5 @@
 ---
-title: "난 나를 진심으로 만드는 사람이랑 일하고 싶어"
+title: "I want to work with someone who brings out the genuine side of me"
 titleKo: ""
 date: 2026-06-30
 deck: ""
