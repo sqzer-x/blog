@@ -1,5 +1,5 @@
 ---
-title: "I want to work with someone who brings out the genuine side of me"
+title: "I want to work with someone who brings out the genuine side of me_KR"
 titleKo: ""
 date: 2026-06-30
 deck: ""

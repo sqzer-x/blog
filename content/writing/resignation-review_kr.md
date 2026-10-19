@@ -1,5 +1,5 @@
 ---
-title: "Resignation review"
+title: "Resignation review_KR"
 titleKo: ""
 date: 2026-06-30
 deck: ""
