@@ -44,7 +44,21 @@ const ko = hasHangul(entry!.body) || books.some((b) => hasHangul(b.title + b.aut
       serve either: satteriProse demotes it to h2. Visually hidden for the same reason as
       the other section pages: the reference prints no page title either. */}
   <h1 class="sr-only">About</h1>
-  <article class="about"><Content /></article>
+  {/* The portrait and the CV link share one floated column, so the link sits directly
+      under the picture. That is why the portrait is here and not in about.md: Markdown
+      can carry neither the link's styling (satteriGuard refuses raw HTML) nor a wrapper
+      around the two. Not lazy, as satteriProse made it: it is above the fold on every
+      screen. The CV opens in the same tab, in the browser's own PDF viewer, as every
+      other link on the site does. */}
+  <article class="about">
+    <aside class="about__side">
+      <figure class="about__portrait">
+        <img src="/uploads/profile.jpg" alt="Hyukjin An" width="480" height="600" decoding="async" />
+      </figure>
+      <p class="about__cv"><a href="/HyukjinAn-CV.pdf" type="application/pdf">CV</a></p>
+    </aside>
+    <Content />
+  </article>
 
   {/* Rows on the Writing index's pattern: a date rail, the title, and here the rating in
       place of a deck. The stars are drawn twice over, filled and empty, and hidden from
@@ -84,33 +98,36 @@ const ko = hasHangul(entry!.body) || books.some((b) => hasHangul(b.title + b.aut
      and `/` scrolls sideways on a phone. */
   .about { word-break: keep-all; }
 
-  /* The portrait, set the way the reference sets its own: floated to the inline end with
-     the prose running beside it, not a banner above the text. It is the first figure in
-     the document and the only one on this page, so the selector is :first-child rather
-     than a class the author would have to remember to type in markdown.
+  /* The portrait and the CV link under it, set the way the reference sets its own
+     portrait: floated to the inline end with the prose running beside it, not a banner
+     above the text.
 
      Two things it buys beyond looking composed. It pulls the reading measure in from the
      full 1024px this page gets over the paragraphs it passes, which is the direction this
      page's line length wanted to move anyway. And the 4:5 portrait keeps its own aspect
-     from the width/height satteriProse stamps on the <img>, so nothing reflows when it
-     loads.
+     from the width/height on the <img>, so nothing reflows when it loads.
 
      Below 40rem the float comes off: the picture and the column beside it would both be
      too narrow, and the reference drops its own block to full width at a similar point. */
-  .about > .fig:first-child {
+  .about__side {
     float: inline-end;
     inline-size: min(14.5rem, 34%);
     margin: 0 0 var(--sp-40) var(--sp-48);
     shape-margin: var(--sp-40);
   }
-  .about > .fig:first-child img { inline-size: 100%; block-size: auto; }
+  .about__portrait { margin: 0; }
+  .about__portrait img { display: block; inline-size: 100%; block-size: auto; }
+
+  /* The CV link is a plain body link centred under the photo, the way the reference sets
+     the links under its own portrait: no box, only the crimson every link here carries. */
+  .about__cv { margin: var(--sp-30) 0 0; text-align: center; }
 
   /* Clears the float so the footer, and anything else after the prose, cannot ride up
      beside the picture when the prose beside it ends first. */
   .about::after { content: ""; display: block; clear: both; }
 
   @media (max-width: 40rem) {
-    .about > .fig:first-child {
+    .about__side {
       float: none;
       inline-size: min(12rem, 45%);
       margin: 0 0 var(--sp-40);

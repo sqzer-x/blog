@@ -3,8 +3,6 @@ title: "About"
 date: 2024-10-31
 ---
 
-![Hyukjin An](/uploads/profile.jpg)
-
 Hyukjin An — Software & Security Engineer, and a founder, based in South Korea.
 Most places online I go by **SQZER**, because I like squeezing a thing down until it
 breaks and shows me what it was made of. Squeezer is fine too.
