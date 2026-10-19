@@ -1,5 +1,5 @@
 ---
-title: "인지부조화 이론"
+title: "Cognitive dissonance theory_KR"
 titleKo: ""
 date: 2026-07-05
 deck: ""

@@ -1,5 +1,5 @@
 ---
-title: "안전하고 자유로운 인터넷을 여행하는 히치하이커를 위한 안내서"
+title: "The Hitchhiker's Guide to a Safe and Free Internet_KR"
 titleKo: ""
 date: 2026-07-20
 deck: ""
